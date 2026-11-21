@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { cacheChapter } from "@/lib/offline";
-import { copy } from "@/lib/copy";
+import { Icon } from "@/components/Icon";
+import { useI18n, useT } from "@/i18n";
 
 type PackItem = {
   list_item_id: string;
@@ -49,6 +50,18 @@ type PackCache = {
   progress: Progress | null;
 };
 
+// 提示只存类型与参数，切换语言后按当前语言重新渲染
+type LoadError =
+  | { kind: "offline" }
+  | { kind: "failed" }
+  | { kind: "cached"; date: string };
+
+type Message =
+  | { kind: "generated" }
+  | { kind: "generateEmpty" }
+  | { kind: "generateFailed"; error: string | number }
+  | { kind: "loadFailed" };
+
 const PACK_CACHE_PREFIX = "dr_pack_cache_";
 
 // 后端暂时不可用时，用最近一次成功读取的今日包兜底
@@ -73,19 +86,25 @@ function writePackCache(uid: string | null, data: PackCache) {
   }
 }
 
-export default function DailyPackCard() {
+export default function DailyPackCard({
+  onSettings,
+}: {
+  onSettings?: () => void;
+}) {
   const supabase = createClient();
+  const t = useT();
+  const { locale } = useI18n();
 
   const [pack, setPack] = useState<Pack | null>(null);
   const [names, setNames] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<Progress | null>(null);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   // 首次拉取完成前不渲染空状态，避免「今天还没有可排的阅读包」闪一下
   const [loading, setLoading] = useState(true);
   // 离线或接口失败时的明确提示，避免一直停在「正在读取今日包…」
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState<LoadError | null>(null);
   // 没有今日包时，先判断卡在哪一步，空状态直接给出下一步的按钮
   const [setup, setSetup] = useState<{
     themes: number;
@@ -207,13 +226,13 @@ export default function DailyPackCard() {
     setNames(cached.names ?? {});
     setProgress(cached.progress ?? null);
     setSetup(null);
-    setLoadError(copy.dailyPack.cachedHint(cached.pack.date));
+    setLoadError({ kind: "cached", date: cached.pack.date });
     setLoading(false);
     return true;
   }
 
   async function loadPack(withWereadSync = true) {
-    setLoadError("");
+    setLoadError(null);
     const uid =
       (await supabase.auth.getSession()).data.session?.user?.id ?? null;
     setUserId(uid);
@@ -224,15 +243,13 @@ export default function DailyPackCard() {
       if (restoreCachedPack(uid)) return;
       const offlineNow =
         typeof navigator !== "undefined" && !navigator.onLine;
-      setLoadError(
-        offlineNow ? copy.dailyPack.offline : copy.dailyPack.loadFailed,
-      );
+      setLoadError({ kind: offlineNow ? "offline" : "failed" });
       setLoading(false);
       return;
     }
     if (!res.ok) {
       if (restoreCachedPack(uid)) return;
-      setLoadError(copy.dailyPack.loadFailed);
+      setLoadError({ kind: "failed" });
       setLoading(false);
       return;
     }
@@ -377,71 +394,134 @@ export default function DailyPackCard() {
 
   async function generate() {
     setBusy(true);
-    setMessage("");
+    setMessage(null);
     try {
       const res = await fetch("/api/daily-pack", { method: "POST" });
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
-        if (json.empty) setMessage(copy.dailyPack.generateEmpty);
-        else setMessage(copy.dailyPack.generated);
+        setMessage({ kind: json.empty ? "generateEmpty" : "generated" });
         loadPack();
       } else {
-        setMessage(copy.dailyPack.generateFailed(json.error ?? res.status));
+        setMessage({
+          kind: "generateFailed",
+          error: json.error ?? res.status,
+        });
       }
     } catch {
-      setMessage(copy.dailyPack.loadFailed);
+      setMessage({ kind: "loadFailed" });
     }
     setBusy(false);
   }
 
   const now = new Date();
-  const dateLabel = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")} · 星期${"日一二三四五六"[now.getDay()]}`;
+  const dateLabel =
+    locale === "en"
+      ? new Intl.DateTimeFormat("en-US", {
+          weekday: "long",
+          month: "short",
+          day: "numeric",
+        })
+          .format(now)
+          .replace(",", " ·")
+      : `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")} · 星期${"日一二三四五六"[now.getDay()]}`;
   const totalMinutes =
     pack?.items.reduce((sum, it) => sum + (it.planned_minutes ?? 0), 0) ?? 0;
+  const chapterCount =
+    pack?.items.reduce(
+      (sum, it) => sum + (it.weread ? 0 : it.chapter_ids.length),
+      0,
+    ) ?? 0;
+  const hasWeread = pack?.items.some((it) => it.weread) ?? false;
+  const metaText =
+    pack && pack.items.length > 0
+      ? hasWeread || chapterCount === 0
+        ? t.today.metaItems(pack.items.length, totalMinutes)
+        : t.today.metaChapters(chapterCount, totalMinutes)
+      : null;
+
+  const loadErrorText =
+    loadError?.kind === "offline"
+      ? t.today.offline
+      : loadError?.kind === "cached"
+        ? t.today.cachedHint(loadError.date)
+        : loadError
+          ? t.today.loadFailed
+          : "";
+
+  const messageText =
+    message?.kind === "generated"
+      ? t.today.generated
+      : message?.kind === "generateEmpty"
+        ? t.today.generateEmpty
+        : message?.kind === "generateFailed"
+          ? t.today.generateFailed(message.error)
+          : message?.kind === "loadFailed"
+            ? t.today.loadFailed
+            : "";
+
+  const emptyText =
+    setup === null
+      ? t.today.empty
+      : setup.themes === 0
+        ? t.today.emptyNoTheme
+        : setup.readable === 0
+          ? t.today.emptyNoBooks
+          : t.today.empty;
 
   return (
     <>
       <div className="page-head page-head-row">
         <div>
           <span className="kicker">{dateLabel}</span>
-          <h1>
-            {pack && pack.items.length > 0
-              ? `今天读 ${pack.items.length} 份，约 ${totalMinutes} 分钟`
-              : "今日阅读"}
-          </h1>
+          <h1>{t.today.title}</h1>
         </div>
-        {pack && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <button
-              className="btn-ghost btn-sm"
-              onClick={generate}
-              disabled={busy}
-            >
-              {busy ? "生成中…" : "重新生成"}
-            </button>
-          </div>
-        )}
+        <div className="page-head-actions">
+          {metaText && <span className="page-meta">{metaText}</span>}
+          {pack && (
+            <>
+              <button
+                className={`icon-btn${busy ? " spin" : ""}`}
+                onClick={generate}
+                disabled={busy}
+                title={t.today.regenerate}
+                aria-label={t.today.regenerate}
+              >
+                <Icon name="refresh" />
+              </button>
+              {onSettings && (
+                <button
+                  className="icon-btn"
+                  onClick={onSettings}
+                  title={t.today.settings}
+                  aria-label={t.today.settings}
+                >
+                  <Icon name="gear" />
+                </button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
-      {pack && loadError && (
+      {pack && loadErrorText && (
         <p className="muted" style={{ margin: "0 0 16px" }}>
-          {loadError}
+          {loadErrorText}
           <button
             className="link-btn"
             style={{ marginLeft: 8 }}
             onClick={() => loadPack()}
           >
-            {copy.dailyPack.retry}
+            {t.today.retry}
           </button>
         </p>
       )}
 
       {!pack && loading ? (
-        <p className="muted">正在读取今日包…</p>
-      ) : !pack && loadError ? (
+        <p className="muted">{t.today.loading}</p>
+      ) : !pack && loadErrorText ? (
         <div className="pack-empty">
           <p className="sub" style={{ margin: "0 0 12px" }}>
-            {loadError}
+            {loadErrorText}
           </p>
           <button
             className="btn-sm"
@@ -450,200 +530,205 @@ export default function DailyPackCard() {
               loadPack();
             }}
           >
-            {copy.dailyPack.retry}
+            {t.today.retry}
           </button>
         </div>
       ) : !pack ? (
         <div className="pack-empty">
           <p className="sub" style={{ margin: "0 0 12px" }}>
-            {setup === null
-              ? copy.dailyPack.empty
-              : setup.themes === 0
-                ? copy.dailyPack.emptyNoTheme
-                : setup.readable === 0
-                  ? copy.dailyPack.emptyNoBooks
-                  : copy.dailyPack.empty}
+            {emptyText}
           </p>
           <div className="pack-empty-acts">
             {setup === null ? (
               <>
                 <Link href="/themes" className="btn-sm btn-ghost">
-                  主题与清单
+                  {t.today.goThemes}
                 </Link>
                 <Link href="/library" className="btn-sm btn-ghost">
-                  书库
+                  {t.today.goLibrary}
                 </Link>
                 <button onClick={generate} disabled={busy}>
-                  {busy ? "生成中…" : "生成今日阅读包"}
+                  {busy ? t.today.generating : t.today.generate}
                 </button>
               </>
             ) : setup.themes === 0 ? (
               <Link href="/themes" className="btn-sm">
-                创建第一个主题
+                {t.today.createTheme}
               </Link>
             ) : setup.readable === 0 ? (
               <>
                 <Link href="/library" className="btn-sm">
-                  去书库上传
+                  {t.today.uploadBook}
                 </Link>
                 <Link href="/themes" className="btn-sm btn-ghost">
-                  查看清单
+                  {t.today.viewList}
                 </Link>
               </>
             ) : (
               <button onClick={generate} disabled={busy}>
-                {busy ? "生成中…" : "生成今日阅读包"}
+                {busy ? t.today.generating : t.today.generate}
               </button>
             )}
           </div>
           <p className="sub" style={{ margin: "14px 0 0", fontSize: 11.5 }}>
-            {copy.dailyPack.flow}
+            {t.today.flow}
           </p>
         </div>
       ) : (
         <>
           {progress && progress.total > 0 && (
-            <div style={{ margin: "0 0 26px" }}>
+            <div className="today-progress">
               <div className="progress">
                 <span
                   className={`progress-fill${packDone ? " done" : ""}`}
                   style={{ width: `${progressPct}%` }}
                 />
               </div>
-              <div className="progress-meta">
+              <div className="progress-meta today-progress-meta">
                 <span>
-                  已完成 {progressPct}%
-                  {progress.chapterTotal > 0 &&
-                    ` · ${progress.chapterDone} / ${progress.chapterTotal} 章`}
+                  {progress.chapterTotal > 0
+                    ? t.today.progressChapters(
+                        progressPct,
+                        progress.chapterDone,
+                        progress.chapterTotal,
+                      )
+                    : t.today.progressPlain(progressPct)}
                 </span>
-                <span>预计 {totalMinutes} 分钟</span>
+                <span>{t.today.plannedMinutes(totalMinutes)}</span>
               </div>
             </div>
           )}
 
           {packDone && pack.status === "confirmed" && (
             <div className="completion-banner">
-              {copy.dailyPack.doneTitle}
+              {t.today.doneTitle}
               <span className="sub">
-                {copy.dailyPack.doneSub(progress?.total ?? 0)}
+                {t.today.doneSub(progress?.total ?? 0)}
               </span>
             </div>
           )}
 
           {pack.items.length === 0 ? (
-            <p className="muted">{copy.dailyPack.noReadable}</p>
+            <p className="muted">{t.today.noReadable}</p>
           ) : (
-            pack.items.map((it, i) => {
-              const planned = Math.max(1, it.planned_minutes);
-              const minutes = Math.min(
-                planned,
-                Math.max(0, it.weread?.today_minutes ?? 0),
-              );
-              const todayPct = Math.min(
-                100,
-                Math.round((minutes / planned) * 100),
-              );
-              const autoTracked = Boolean(it.weread?.synced_at);
-              return (
-              <div className="pack" key={i}>
-                <div className="no">{String(i + 1).padStart(2, "0")}</div>
-                <div className="body">
-                  <p className="name">
-                    {it.weread ? (
-                      <a
-                        href={it.weread.readerLink}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {it.weread.title || "微信读书"}
-                      </a>
-                    ) : (
-                      <Link
-                        href={`/books/${it.document_id}?chapter=${it.chapter_ids[0]}&slice=${it.chapter_start}-${it.chapter_end}`}
-                      >
-                        {names[it.document_id] ?? "未知书名"}
-                      </Link>
-                    )}
-                  </p>
-                  <p className="path">
-                    {it.weread
-                      ? `${names[it.theme_id] ?? "未知主题"} · 微信读书 · 建议 ${it.planned_minutes} 分钟`
-                      : `${names[it.theme_id] ?? "未知主题"} · 第 ${it.chapter_start}–${it.chapter_end} 章 · ${it.chapter_ids.length} 章`}
-                  </p>
-                  {it.reason && <p className="why">{it.reason}</p>}
-                  {it.weread && (
-                    <div className="weread-track">
-                      <div className="weread-track-head">
-                        <span>今日阅读</span>
-                        <strong>{todayPct}%</strong>
-                      </div>
-                      <input
-                        type="range"
-                        min={0}
-                        max={planned}
-                        step={1}
-                        value={minutes}
-                        aria-label="今日已读分钟"
-                        onChange={(e) =>
-                          previewTodayMinutes(it, Number(e.target.value))
-                        }
-                        onPointerUp={(e) =>
-                          saveTodayMinutes(
-                            it,
-                            Number((e.target as HTMLInputElement).value),
-                          )
-                        }
-                        onKeyUp={(e) =>
-                          saveTodayMinutes(
-                            it,
-                            Number((e.target as HTMLInputElement).value),
-                          )
-                        }
-                      />
-                      <p className="hint">
-                        今日已读 {minutes} / {planned} 分钟
-                        {autoTracked
-                          ? "。按阅读时长自动计算，读满计划分钟就算完成今天这一档。"
-                          : "。暂时读不到微信读书的阅读时长，可以手动拖一下。"}
-                      </p>
-                    </div>
-                  )}
-                  <div className="foot">
-                    <span>约 {it.planned_minutes} 分钟</span>
-                    <span className="act">
+            <div className="pack-cards">
+              {pack.items.map((it, i) => {
+                const planned = Math.max(1, it.planned_minutes);
+                const minutes = Math.min(
+                  planned,
+                  Math.max(0, it.weread?.today_minutes ?? 0),
+                );
+                const todayPct = Math.min(
+                  100,
+                  Math.round((minutes / planned) * 100),
+                );
+                const autoTracked = Boolean(it.weread?.synced_at);
+                const href = `/books/${it.document_id}?chapter=${it.chapter_ids[0]}&slice=${it.chapter_start}-${it.chapter_end}`;
+                const chip = it.weread
+                  ? t.today.wereadChip(it.planned_minutes)
+                  : it.chapter_ids.length > 1
+                    ? t.today.chapterRange(
+                        it.chapter_start,
+                        it.chapter_end,
+                        it.planned_minutes,
+                      )
+                    : t.today.chapterOne(
+                        it.chapter_start,
+                        it.planned_minutes,
+                      );
+                return (
+                  <article
+                    className={`pack-card${it.weread ? " weread" : ""}`}
+                    key={i}
+                  >
+                    <span className="chip">{chip}</span>
+                    <h3 className="pack-card-title">
                       {it.weread ? (
                         <a
-                          className="link-btn"
                           href={it.weread.readerLink}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          去微信读书阅读 →
+                          {it.weread.title || t.today.unknownBook}
                         </a>
                       ) : (
-                        <Link
-                          className="link-btn"
-                          href={`/books/${it.document_id}?chapter=${it.chapter_ids[0]}&slice=${it.chapter_start}-${it.chapter_end}`}
-                        >
-                          开始阅读 →
+                        <Link href={href}>
+                          {names[it.document_id] ?? t.today.unknownBook}
                         </Link>
                       )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              );
-            })
+                    </h3>
+                    <p className="pack-card-by">
+                      {names[it.theme_id] ?? t.today.unknownTheme} ·{" "}
+                      {t.today.readingOrder(i + 1)}
+                    </p>
+                    {it.reason && <p className="pack-card-why">{it.reason}</p>}
+                    {it.weread && (
+                      <div className="weread-track">
+                        <div className="weread-track-head">
+                          <span>{t.today.todayReading}</span>
+                          <strong>{todayPct}%</strong>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={planned}
+                          step={1}
+                          value={minutes}
+                          aria-label={t.today.ariaMinutes}
+                          onChange={(e) =>
+                            previewTodayMinutes(it, Number(e.target.value))
+                          }
+                          onPointerUp={(e) =>
+                            saveTodayMinutes(
+                              it,
+                              Number((e.target as HTMLInputElement).value),
+                            )
+                          }
+                          onKeyUp={(e) =>
+                            saveTodayMinutes(
+                              it,
+                              Number((e.target as HTMLInputElement).value),
+                            )
+                          }
+                        />
+                        <p className="hint">
+                          {t.today.minutesRead(minutes, planned)}
+                          {autoTracked
+                            ? t.today.autoTracked
+                            : t.today.manualTrack}
+                        </p>
+                      </div>
+                    )}
+                    <div className="pack-card-foot">
+                      {it.weread ? (
+                        <a
+                          className="pack-card-go"
+                          href={it.weread.readerLink}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          {t.today.openWeread} →
+                        </a>
+                      ) : (
+                        <Link className="pack-card-go" href={href}>
+                          {t.today.startReading} →
+                        </Link>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
           )}
 
           <p className="muted" style={{ margin: "14px 0 0" }}>
-            {copy.dailyPack.regenHelp}
+            {t.today.regenHelp}
           </p>
         </>
       )}
-      {message && (
+      {messageText && (
         <p className="muted" style={{ margin: "8px 0 0" }}>
-          {message}
+          {messageText}
         </p>
       )}
     </>

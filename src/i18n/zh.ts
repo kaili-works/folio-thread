@@ -14,6 +14,87 @@ export const zh = {
     todayShort: "今日",
     switchLanguage: "切换语言",
   },
+  today: {
+    title: "今日阅读",
+    metaChapters: (chapters: number, minutes: number) =>
+      `${chapters} 章 · 约 ${minutes} 分钟`,
+    metaItems: (items: number, minutes: number) =>
+      `${items} 份 · 约 ${minutes} 分钟`,
+    regenerate: "重新生成今日包",
+    settings: "阅读偏好",
+    generating: "生成中…",
+    progressChapters: (pct: number, done: number, total: number) =>
+      `已完成 ${pct}% · ${done} / ${total} 章`,
+    progressPlain: (pct: number) => `已完成 ${pct}%`,
+    plannedMinutes: (minutes: number) => `预计 ${minutes} 分钟`,
+    readingOrder: (n: number) => `阅读顺序 ${String(n).padStart(2, "0")}`,
+    chapterOne: (chapter: number, minutes: number) =>
+      `第 ${chapter} 章 · ${minutes} 分钟`,
+    chapterRange: (start: number, end: number, minutes: number) =>
+      `第 ${start}–${end} 章 · ${minutes} 分钟`,
+    wereadChip: (minutes: number) => `微信读书 · 建议 ${minutes} 分钟`,
+    startReading: "开始阅读",
+    openWeread: "去微信读书阅读",
+    unknownBook: "未知书名",
+    unknownTheme: "未知主题",
+    todayReading: "今日阅读",
+    ariaMinutes: "今日已读分钟",
+    minutesRead: (minutes: number, planned: number) =>
+      `今日已读 ${minutes} / ${planned} 分钟`,
+    autoTracked:
+      "按阅读时长自动计算，读满计划分钟就算完成今天这一档。",
+    manualTrack: "暂时读不到微信读书的阅读时长，可以手动拖一下。",
+    loading: "正在读取今日包…",
+    retry: "重试",
+    offline: "当前处于离线状态，无法读取今日包；联网后会自动恢复。",
+    loadFailed: "今日包读取失败，请检查网络后重试。",
+    cachedHint: (date: string) =>
+      `显示 ${date} 缓存的今日包；联网或服务恢复后会自动刷新。`,
+    empty:
+      "今天还没有可排的阅读包。确认主题清单、书库里也有对应的书之后，系统会自动生成今天的份额。",
+    emptyNoTheme:
+      "还没有研究主题。先创建一个主题，让系统按主题生成书单，明天就会自动排进今日包。",
+    emptyNoBooks:
+      "主题和清单都有了，但清单里的书还读不了。上传 EPUB 或匹配到微信读书后，才能切出今天的章节。",
+    flow: "顺序是：创建主题 → 生成并确认清单 → 上传图书 → 今日包每天自动生成。",
+    goThemes: "主题与清单",
+    goLibrary: "书库",
+    createTheme: "创建第一个主题",
+    uploadBook: "去书库上传",
+    viewList: "查看清单",
+    generate: "生成今日阅读包",
+    generateEmpty: "暂无可读材料。先到主题里生成清单、上传图书。",
+    generated: "已按当前清单重新排好今天的份额。",
+    generateFailed: (error: string | number) => `生成失败：${error}`,
+    noReadable: "这个包里暂时没有可读材料，先到书库补充图书。",
+    doneTitle: "今日份阅读已完成",
+    doneSub: (chapters: number) => `今天安排的 ${chapters} 章都读完了，明天继续。`,
+    regenHelp:
+      "想多读一点或换换份量，可以重新生成：已读进度不会清零，今天读完的章节会保留并计入进度，也不会重复安排。不手动点也会在每天零点自动换成新一天的包。",
+    prefsKicker: "阅读偏好",
+    prefsUnit: "字 / 分钟",
+    save: "保存",
+    speedInvalid: "阅读速度需在 100~1000 字/分钟之间。",
+    speedSaved: "已保存。将按此速度估算每天可读的字数。",
+    speedSaveFailed: (error: string | number) => `保存失败：${error}`,
+    speedHelp:
+      "它与各主题的「每日预算」共同决定今日包的切分（预算 × 速度 = 每日可读字数）。修改后点今日包上的「重新生成」生效；每日预算在「主题与清单」里按主题调整。",
+    quickKicker: "快捷",
+    quickLibrary: "我的书库",
+    quickNotes: "全部笔记",
+    quickThemes: "主题与清单",
+    statsKicker: "累计阅读",
+    statsMore: "详细统计",
+    statBooks: "读完整本",
+    statChapters: "完成章节",
+    statWords: "完成字数",
+    unitBooks: "本",
+    unitChapters: "章",
+    words: (n: number) =>
+      n >= 10000
+        ? { value: (n / 10000).toFixed(1), unit: "万字" }
+        : { value: n.toLocaleString("zh-CN"), unit: "字" },
+  },
   auth: {
     brandKicker: "FolioThread",
     brandTitle: "页脉研读",
