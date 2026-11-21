@@ -54,10 +54,9 @@ export const en: Dict = {
     draft: "Draft",
     confirmList: "Confirm list",
     adjust: "Adjust in a sentence",
-    generateToday: "Generate today's pack",
-    generatingToday: "Generating…",
-    packFailed: (error: string | number) =>
-      `Couldn't generate today's pack: ${error}`,
+    goTodayPack: "Go to today's pack",
+    goTodayPackHint:
+      "Today's pack draws chapters from themes marked Priority or normal, split by each theme's daily budget. Shelved themes are left out.",
     statList: "List",
     statRead: "Finished",
     statPending: "To add",

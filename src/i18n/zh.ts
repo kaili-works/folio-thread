@@ -51,9 +51,9 @@ export const zh = {
     draft: "草稿",
     confirmList: "确认清单",
     adjust: "一句话调整",
-    generateToday: "生成今日包",
-    generatingToday: "生成中…",
-    packFailed: (error: string | number) => `生成今日包失败：${error}`,
+    goTodayPack: "去生成今日包",
+    goTodayPackHint:
+      "今日包会从设为「优先」或正常状态的主题里，按各自的每日预算挑选章节；搁置的主题不会进入。",
     statList: "清单",
     statRead: "已读完",
     statPending: "待补充",

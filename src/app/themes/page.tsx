@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AppNav from "@/components/AppNav";
 import { useT } from "@/i18n";
@@ -118,7 +117,6 @@ type ListItem = {
 // 节点上的状态文案由页面内按语言生成
 export default function ThemesPage() {
   const supabase = createClient();
-  const router = useRouter();
   const t = useT();
 
   const [themes, setThemes] = useState<Theme[]>([]);
@@ -147,8 +145,6 @@ export default function ThemesPage() {
   const [view, setView] = useState<"path" | "list">("path");
   // 一句话调整面板
   const [adjustOpen, setAdjustOpen] = useState(false);
-  // 生成今日包
-  const [packBusy, setPackBusy] = useState(false);
   // 每本书的章节级进度，按 document_id 索引
   const [bookProgress, setBookProgress] = useState<
     Record<string, { done: number; total: number; current: number }>
@@ -357,25 +353,6 @@ export default function ThemesPage() {
     if (it.status === "skipped") return t.themes.stateSkipped;
     if (it.status === "shelved") return t.themes.stateShelved;
     return t.themes.stateUnread;
-  }
-
-  // 按当前清单生成今日包，生成后直接去今日页
-  async function generateTodayPack() {
-    if (packBusy) return;
-    setPackBusy(true);
-    try {
-      const res = await fetch("/api/daily-pack", { method: "POST" });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        setMessage(t.themes.packFailed(json.error ?? res.status));
-        return;
-      }
-      router.push("/today");
-    } catch (e) {
-      setMessage(t.themes.packFailed(e instanceof Error ? e.message : "network"));
-    } finally {
-      setPackBusy(false);
-    }
   }
 
   async function saveThemeBudget() {
@@ -811,16 +788,13 @@ export default function ThemesPage() {
           </div>
           <div className="page-head-acts">
             {themesLoaded && themes.length > 0 && (
-              <button
-                type="button"
+              <Link
+                href="/today"
                 className="btn-line btn-sm"
-                onClick={generateTodayPack}
-                disabled={packBusy}
+                title={t.themes.goTodayPackHint}
               >
-                {packBusy
-                  ? t.themes.generatingToday
-                  : t.themes.generateToday}
-              </button>
+                {t.themes.goTodayPack}
+              </Link>
             )}
             <button
               type="button"
@@ -1243,7 +1217,7 @@ export default function ThemesPage() {
                     {t.themes.bookCount(pendingCount)}
                   </div>
                 </div>
-                <div className="cell">
+                <div className="cell cell-budget">
                   <div className="k">{t.themes.statBudget}</div>
                   <div className="v budget">
                     <input

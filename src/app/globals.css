@@ -6873,6 +6873,19 @@ body:has(.auth-split) {
   font-size: 10.5px;
 }
 
+/* 每日预算是可编辑设置，用浅绿底与统计数字区分开 */
+.themes-page .sheet-stats .cell-budget {
+  margin: 4px 0;
+  padding: 8px 10px 8px 12px;
+  border-left: 0;
+  border-radius: 8px;
+  background: #edf3e2;
+}
+
+.themes-page .sheet-stats .cell-budget .k {
+  color: var(--ft-green);
+}
+
 .themes-page .sheet-progress {
   margin-top: 18px;
 }
@@ -7212,6 +7225,12 @@ body:has(.auth-split) {
 
   .themes-page .sheet-stats .cell:nth-child(n + 3) {
     border-top: 1px solid var(--ft-rule);
+  }
+
+  .themes-page .sheet-stats .cell-budget {
+    padding-left: 10px;
+    border-left: 0;
+    border-top: 0;
   }
 
   .themes-page .toolbar .hint {
