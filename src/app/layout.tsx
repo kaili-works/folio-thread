@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { IconSprite } from "@/components/Icon";
 import { I18nProvider } from "@/i18n";
 
 export const metadata: Metadata = {
@@ -34,6 +35,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <IconSprite />
         <I18nProvider>{children}</I18nProvider>
         <ServiceWorkerRegister />
       </body>

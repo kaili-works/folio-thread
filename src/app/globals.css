@@ -5954,3 +5954,40 @@ body:has(.auth-split) {
   text-align: center;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
+/* ---- 线性图标：与预览稿一致（stroke 1.6 / 圆角端点） ---- */
+.ic {
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -3px;
+}
+
+.app-nav-desktop a,
+.app-header-right a,
+.app-header-right button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-nav-desktop .ic,
+.app-header-right .ic {
+  width: 15px;
+  height: 15px;
+  opacity: 0.9;
+}
+
+/* 手机底栏：仅图标 */
+.app-tabs .ic {
+  width: 20px;
+  height: 20px;
+}
+
+.app-tabs a.tab-plus .plus-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

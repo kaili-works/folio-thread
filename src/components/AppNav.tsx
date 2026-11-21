@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { clearUserCache } from "@/lib/offline";
 import OnboardingModal from "@/components/OnboardingModal";
 import GuideModal from "@/components/GuideModal";
+import { Icon } from "@/components/Icon";
 import { useI18n } from "@/i18n";
 
 // 应用外壳导航：桌面顶栏 + 移动端底部三栏（左=市集，中=＋创建，右=今日）
@@ -47,15 +48,19 @@ export default function AppNav() {
           </Link>
           <nav className="app-nav-desktop">
             <Link href="/themes" className={isActive("/themes") ? "active" : ""}>
+              <Icon name="themes" />
               {t.nav.themes}
             </Link>
             <Link href="/library" className={isActive("/library") ? "active" : ""}>
+              <Icon name="library" />
               {t.nav.library}
             </Link>
             <Link href="/today" className={isActive("/today") ? "active" : ""}>
+              <Icon name="today" />
               {t.nav.today}
             </Link>
             <Link href="/stats" className={isActive("/stats") ? "active" : ""}>
+              <Icon name="stats" />
               {t.nav.stats}
             </Link>
           </nav>
@@ -65,6 +70,7 @@ export default function AppNav() {
               className="app-header-market"
               aria-label={t.nav.market}
             >
+              <Icon name="market" />
               {t.nav.market}
             </Link>
             <Link
@@ -72,6 +78,7 @@ export default function AppNav() {
               className={`app-header-quick app-header-library${isActive("/library") ? " active" : ""}`}
               aria-label={t.nav.libraryShort}
             >
+              <Icon name="library" />
               {t.nav.libraryShort}
             </Link>
             <Link
@@ -79,12 +86,14 @@ export default function AppNav() {
               className={`app-header-quick app-header-notes ${isActive("/notes") ? "active" : ""}`}
               aria-label={t.nav.notes}
             >
+              <Icon name="note" />
               {t.nav.notes}
             </Link>
             <button
               aria-label={t.nav.guide}
               onClick={() => setGuideOpen(true)}
             >
+              <Icon name="guide" />
               {t.nav.guide}
             </button>
             <button
@@ -93,24 +102,39 @@ export default function AppNav() {
             >
               {locale === "zh" ? "EN" : "中"}
             </button>
-            <button onClick={logout}>{t.nav.logout}</button>
+            <button onClick={logout} aria-label={t.nav.logout} title={t.nav.logout}>
+              <Icon name="exit" />
+            </button>
           </div>
         </div>
       </header>
 
       <nav className="app-tabs">
-        <Link href="/market" className={isActive("/market") ? "active" : ""}>
-          <span className="tab-label">{t.nav.market}</span>
+        <Link
+          href="/market"
+          className={isActive("/market") ? "active" : ""}
+          aria-label={t.nav.market}
+          title={t.nav.market}
+        >
+          <Icon name="market" size={20} />
         </Link>
         <Link
           href="/themes"
           className={`tab-plus ${isActive("/themes") ? "active" : ""}`}
+          aria-label={t.nav.newTheme}
+          title={t.nav.newTheme}
         >
-          <span className="plus-circle">＋</span>
-          <span>{t.nav.newTheme}</span>
+          <span className="plus-circle">
+            <Icon name="plus" size={16} />
+          </span>
         </Link>
-        <Link href="/today" className={isActive("/today") ? "active" : ""}>
-          <span className="tab-label">{t.nav.todayShort}</span>
+        <Link
+          href="/today"
+          className={isActive("/today") ? "active" : ""}
+          aria-label={t.nav.todayShort}
+          title={t.nav.todayShort}
+        >
+          <Icon name="today" size={20} />
         </Link>
       </nav>
 
