@@ -24,6 +24,75 @@ function sortThemes(list: Theme[]) {
   return [...list].sort((a, b) => rank(a.status) - rank(b.status));
 }
 
+// 书籍操作图标：16px 线性图标，文字说明交给下方「清单操作说明」
+function ActIcon({
+  name,
+}: {
+  name: "up" | "down" | "swap" | "lock" | "unlock" | "shelve" | "restore" | "delete";
+}) {
+  const common = {
+    viewBox: "0 0 16 16",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 1.4,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+  };
+  if (name === "up")
+    return (
+      <svg {...common}>
+        <path d="M8 13V3.5M4.5 7L8 3.5 11.5 7" />
+      </svg>
+    );
+  if (name === "down")
+    return (
+      <svg {...common}>
+        <path d="M8 3v9.5M4.5 9 8 12.5 11.5 9" />
+      </svg>
+    );
+  if (name === "swap")
+    return (
+      <svg {...common}>
+        <path d="M3 5.5h8.5M9 3l2.5 2.5L9 8" />
+        <path d="M13 10.5H4.5M7 8l-2.5 2.5L7 13" />
+      </svg>
+    );
+  if (name === "lock")
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="7" width="9" height="6" rx="1.2" />
+        <path d="M5.5 7V5.5a2.5 2.5 0 0 1 5 0V7" />
+      </svg>
+    );
+  if (name === "unlock")
+    return (
+      <svg {...common}>
+        <rect x="3.5" y="7" width="9" height="6" rx="1.2" />
+        <path d="M5.5 7V5.5a2.5 2.5 0 0 1 4.8-1" />
+      </svg>
+    );
+  if (name === "shelve")
+    return (
+      <svg {...common}>
+        <path d="M2.5 3.5h11v3h-11z" />
+        <path d="M3.5 6.5v6h9v-6M6.5 9h3" />
+      </svg>
+    );
+  if (name === "restore")
+    return (
+      <svg {...common}>
+        <path d="M4 6.5H2.5v-1.5" />
+        <path d="M2.8 6.3A5 5 0 1 1 3 10" />
+      </svg>
+    );
+  return (
+    <svg {...common}>
+      <path d="M3 4.5h10M6 4.5V3h4v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5" />
+    </svg>
+  );
+}
+
 type ListItem = {
   id: string;
   order_index: number;
@@ -1455,21 +1524,31 @@ export default function ThemesPage() {
 
                         <div className="manage-row">
                           <button
-                            className="btn-line btn-xs"
+                            className="item-act"
+                            title={t.themes.moveUp}
+                            aria-label={t.themes.moveUp}
                             onClick={() => moveItem(it.id, "up")}
                             disabled={idx === 0}
                           >
-                            {t.themes.moveUp}
+                            <ActIcon name="up" />
                           </button>
                           <button
-                            className="btn-line btn-xs"
+                            className="item-act"
+                            title={t.themes.moveDown}
+                            aria-label={t.themes.moveDown}
                             onClick={() => moveItem(it.id, "down")}
                             disabled={idx === items.length - 1}
                           >
-                            {t.themes.moveDown}
+                            <ActIcon name="down" />
                           </button>
                           <button
-                            className="btn-line btn-xs"
+                            className="item-act"
+                            title={
+                              replacingId === it.id
+                                ? t.themes.replacing
+                                : t.themes.replace
+                            }
+                            aria-label={t.themes.replace}
                             onClick={() =>
                               setConfirmAction({
                                 kind: "replace",
@@ -1478,34 +1557,40 @@ export default function ThemesPage() {
                             }
                             disabled={replacingId !== null}
                           >
-                            {replacingId === it.id
-                              ? t.themes.replacing
-                              : t.themes.replace}
+                            <ActIcon name="swap" />
                           </button>
                           <button
-                            className="btn-line btn-xs"
+                            className="item-act"
+                            title={it.locked ? t.themes.unlock : t.themes.lock}
+                            aria-label={it.locked ? t.themes.unlock : t.themes.lock}
                             onClick={() => toggleLock(it.id)}
                           >
-                            {it.locked ? t.themes.unlock : t.themes.lock}
+                            <ActIcon name={it.locked ? "unlock" : "lock"} />
                           </button>
                           {it.status === "skipped" ||
                           it.status === "shelved" ? (
                             <button
-                              className="btn-quiet btn-xs"
+                              className="item-act"
+                              title={t.themes.restore}
+                              aria-label={t.themes.restore}
                               onClick={() => setItemStatus(it.id, "unread")}
                             >
-                              {t.themes.restore}
+                              <ActIcon name="restore" />
                             </button>
                           ) : (
                             <button
-                              className="btn-quiet btn-xs"
-                              onClick={() => setItemStatus(it.id, "skipped")}
+                              className="item-act"
+                              title={t.themes.shelve}
+                              aria-label={t.themes.shelve}
+                              onClick={() => setItemStatus(it.id, "shelved")}
                             >
-                              {t.themes.skip}
+                              <ActIcon name="shelve" />
                             </button>
                           )}
                           <button
-                            className="btn-danger btn-xs"
+                            className="item-act danger"
+                            title={t.themes.remove}
+                            aria-label={t.themes.remove}
                             onClick={() =>
                               setConfirmAction({
                                 kind: "delete",
@@ -1513,7 +1598,7 @@ export default function ThemesPage() {
                               })
                             }
                           >
-                            {t.themes.remove}
+                            <ActIcon name="delete" />
                           </button>
                         </div>
 
@@ -1614,21 +1699,31 @@ export default function ThemesPage() {
                           )}
                           <div className="manage">
                             <button
-                              className="btn-ghost btn-xs"
+                              className="item-act"
+                              title={t.themes.moveUp}
+                              aria-label={t.themes.moveUp}
                               onClick={() => moveItem(it.id, "up")}
                               disabled={idx === 0}
                             >
-                              {t.themes.moveUp}
+                              <ActIcon name="up" />
                             </button>
                             <button
-                              className="btn-ghost btn-xs"
+                              className="item-act"
+                              title={t.themes.moveDown}
+                              aria-label={t.themes.moveDown}
                               onClick={() => moveItem(it.id, "down")}
                               disabled={idx === items.length - 1}
                             >
-                              {t.themes.moveDown}
+                              <ActIcon name="down" />
                             </button>
                             <button
-                              className="btn-ghost btn-xs"
+                              className="item-act"
+                              title={
+                                replacingId === it.id
+                                  ? t.themes.replacing
+                                  : t.themes.replace
+                              }
+                              aria-label={t.themes.replace}
                               onClick={() =>
                                 setConfirmAction({
                                   kind: "replace",
@@ -1637,34 +1732,42 @@ export default function ThemesPage() {
                               }
                               disabled={replacingId !== null}
                             >
-                              {replacingId === it.id
-                                ? t.themes.replacing
-                                : t.themes.replace}
+                              <ActIcon name="swap" />
                             </button>
                             <button
-                              className="btn-ghost btn-xs"
+                              className="item-act"
+                              title={it.locked ? t.themes.unlock : t.themes.lock}
+                              aria-label={
+                                it.locked ? t.themes.unlock : t.themes.lock
+                              }
                               onClick={() => toggleLock(it.id)}
                             >
-                              {it.locked ? t.themes.unlock : t.themes.lock}
+                              <ActIcon name={it.locked ? "unlock" : "lock"} />
                             </button>
                             {it.status === "skipped" ||
                             it.status === "shelved" ? (
                               <button
-                                className="btn-ghost btn-xs"
+                                className="item-act"
+                                title={t.themes.restore}
+                                aria-label={t.themes.restore}
                                 onClick={() => setItemStatus(it.id, "unread")}
                               >
-                                {t.themes.restore}
+                                <ActIcon name="restore" />
                               </button>
                             ) : (
                               <button
-                                className="btn-ghost btn-xs"
+                                className="item-act"
+                                title={t.themes.shelve}
+                                aria-label={t.themes.shelve}
                                 onClick={() => setItemStatus(it.id, "shelved")}
                               >
-                                {t.themes.shelved}
+                                <ActIcon name="shelve" />
                               </button>
                             )}
                             <button
-                              className="btn-danger btn-xs"
+                              className="item-act danger"
+                              title={t.themes.remove}
+                              aria-label={t.themes.remove}
                               onClick={() =>
                                 setConfirmAction({
                                   kind: "delete",
@@ -1672,7 +1775,7 @@ export default function ThemesPage() {
                                 })
                               }
                             >
-                              {t.themes.remove}
+                              <ActIcon name="delete" />
                             </button>
                           </div>
                           {confirmAction?.itemId === it.id && (

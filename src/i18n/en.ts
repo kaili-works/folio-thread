@@ -104,7 +104,7 @@ export const en: Dict = {
     replacing: "Swapping…",
     lock: "Lock",
     unlock: "Unlock",
-    skip: "Skip",
+    shelve: "Shelve",
     restore: "Restore",
     remove: "Delete",
     confirmReplace: (title: string) =>

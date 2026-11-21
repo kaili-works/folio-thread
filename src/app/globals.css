@@ -2074,10 +2074,10 @@ details.plain ul {
 
 .list-item .manage {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   flex-wrap: wrap;
   margin-top: 8px;
-  opacity: 0.55;
+  opacity: 0.75;
   transition: opacity 0.15s ease;
 }
 
@@ -7103,23 +7103,43 @@ body:has(.auth-split) {
   margin: 4px 0 0 31px;
 }
 
-.themes-page .manage-row .btn-line {
-  padding: 3px 6px;
-  border-color: transparent;
-  font-size: 11.5px;
-  color: var(--ft-muted);
-}
-
-.themes-page .manage-row .btn-line:hover {
+/* 书籍操作：图标按钮，说明文字见下方「清单操作说明」 */
+.themes-page .item-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
-  color: var(--ft-ink);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  color: var(--ft-muted);
+  cursor: pointer;
 }
 
-.themes-page .manage-row .btn-quiet,
-.themes-page .manage-row .btn-danger {
-  font-size: 11.5px;
+.themes-page .item-act svg {
+  width: 14px;
+  height: 14px;
+}
+
+.themes-page .item-act:hover:not(:disabled) {
+  background: #f1f0e9;
+  color: var(--ft-ink);
+}
+
+.themes-page .item-act:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.themes-page .item-act.danger {
+  color: #b91c1c;
+}
+
+.themes-page .item-act.danger:hover:not(:disabled) {
+  background: #fef2f2;
+  color: #991b1b;
 }
 
 .themes-page .confirm-inline {

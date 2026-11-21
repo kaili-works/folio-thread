@@ -100,7 +100,7 @@ export const zh = {
     replacing: "换书中…",
     lock: "锁定",
     unlock: "解锁",
-    skip: "跳过",
+    shelve: "搁置",
     restore: "恢复",
     remove: "删除",
     confirmReplace: (title: string) =>
