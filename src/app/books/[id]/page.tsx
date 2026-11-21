@@ -97,13 +97,15 @@ export default function BookReader() {
   // 字号调节（正文，15~24px，localStorage 持久化）
   const FONT_MIN = 15;
   const FONT_MAX = 24;
-  const [fontSize, setFontSize] = useState<number>(() => {
-    if (typeof window === "undefined") return 16.5;
-    const v = parseInt(localStorage.getItem("reader-font-size") ?? "16.5", 10);
-    return Number.isFinite(v)
-      ? Math.min(FONT_MAX, Math.max(FONT_MIN, v))
-      : 16.5;
-  });
+  const [fontSize, setFontSize] = useState<number>(16.5);
+
+  // 字号偏好挂载后再读，避免服务端 16.5 与客户端 17 的 hydration 不一致
+  useEffect(() => {
+    const v = parseInt(localStorage.getItem("reader-font-size") ?? "", 10);
+    if (Number.isFinite(v)) {
+      setFontSize(Math.min(FONT_MAX, Math.max(FONT_MIN, v)));
+    }
+  }, []);
 
   function changeFontSize(delta: number) {
     setFontSize((prev) => {
