@@ -6506,3 +6506,28 @@ body:has(.auth-split) {
     max-width: none;
   }
 }
+
+/* ---- 顶栏语言切换：文字胶囊 ---- */
+.app-header-right .lang-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  padding: 4px 10px;
+  border: 1px solid var(--ft-rule);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--ft-muted);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  line-height: 1.4;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.app-header-right .lang-switch:hover {
+  border-color: var(--ft-green-line);
+  background: var(--ft-green-soft);
+  color: var(--ft-ink);
+}

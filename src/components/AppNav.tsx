@@ -98,11 +98,12 @@ export default function AppNav() {
               <Icon name="guide" />
             </button>
             <button
+              className="lang-switch"
               aria-label={t.nav.switchLanguage}
               title={t.nav.switchLanguage}
               onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
             >
-              {locale === "zh" ? "EN" : "中"}
+              {locale === "zh" ? "中文" : "EN"}
             </button>
             <button
               className="icon-only"
