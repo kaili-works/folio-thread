@@ -809,14 +809,28 @@ export default function ThemesPage() {
             <span className="kicker">{t.themes.kicker}</span>
             <h1>{t.themes.title}</h1>
           </div>
-          <button
-            type="button"
-            className="btn-sm theme-new-btn"
-            onClick={() => setCreating((v) => !v)}
-            aria-expanded={creating}
-          >
-            {creating ? t.themes.newThemeClose : `＋ ${t.themes.newTheme}`}
-          </button>
+          <div className="page-head-acts">
+            {themesLoaded && themes.length > 0 && (
+              <button
+                type="button"
+                className="btn-line btn-sm"
+                onClick={generateTodayPack}
+                disabled={packBusy}
+              >
+                {packBusy
+                  ? t.themes.generatingToday
+                  : t.themes.generateToday}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-sm theme-new-btn"
+              onClick={() => setCreating((v) => !v)}
+              aria-expanded={creating}
+            >
+              {creating ? t.themes.newThemeClose : `＋ ${t.themes.newTheme}`}
+            </button>
+          </div>
         </div>
 
         {/* 创建主题：页面唯一主按钮展开后的表单 */}
@@ -1138,15 +1152,6 @@ export default function ThemesPage() {
                       {t.themes.adjust}
                     </button>
                   )}
-                  <button
-                    className="btn-sm"
-                    onClick={generateTodayPack}
-                    disabled={packBusy}
-                  >
-                    {packBusy
-                      ? t.themes.generatingToday
-                      : t.themes.generateToday}
-                  </button>
                 </div>
               </div>
 

@@ -7313,4 +7313,11 @@ body:has(.auth-split) {
   white-space: nowrap;
 }
 
+.themes-page .page-head-acts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 
