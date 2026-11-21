@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -1570,7 +1570,7 @@ export default function ThemesPage() {
                           {it.status === "skipped" ||
                           it.status === "shelved" ? (
                             <button
-                              className="item-act quiet"
+                              className="item-act"
                               title={t.themes.restore}
                               aria-label={t.themes.restore}
                               onClick={() => setItemStatus(it.id, "unread")}
@@ -1579,7 +1579,7 @@ export default function ThemesPage() {
                             </button>
                           ) : (
                             <button
-                              className="item-act quiet"
+                              className="item-act"
                               title={t.themes.shelve}
                               aria-label={t.themes.shelve}
                               onClick={() => setItemStatus(it.id, "shelved")}
@@ -1747,7 +1747,7 @@ export default function ThemesPage() {
                             {it.status === "skipped" ||
                             it.status === "shelved" ? (
                               <button
-                                className="item-act quiet"
+                                className="item-act"
                                 title={t.themes.restore}
                                 aria-label={t.themes.restore}
                                 onClick={() => setItemStatus(it.id, "unread")}
@@ -1756,7 +1756,7 @@ export default function ThemesPage() {
                               </button>
                             ) : (
                               <button
-                                className="item-act quiet"
+                                className="item-act"
                                 title={t.themes.shelve}
                                 aria-label={t.themes.shelve}
                                 onClick={() => setItemStatus(it.id, "shelved")}

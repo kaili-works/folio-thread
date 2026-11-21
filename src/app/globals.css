@@ -7097,7 +7097,7 @@ body:has(.auth-split) {
   margin: 4px 0 0 31px;
 }
 
-/* 书籍操作：按预览稿的 btn.line.icon 样式，28px 描边方钮 */
+/* 书籍操作：全部统一为预览稿 manage-row 的浅描边方钮 */
 .themes-page .item-act {
   display: inline-flex;
   align-items: center;
@@ -7105,9 +7105,9 @@ body:has(.auth-split) {
   width: 28px;
   height: 28px;
   padding: 0;
-  border: 1px solid var(--ft-ink);
-  border-radius: 7px;
-  background: transparent;
+  border: 1px solid #dde5d6;
+  border-radius: 6px;
+  background: #f6f7ea;
   color: var(--ft-ink);
   cursor: pointer;
 }
@@ -7118,7 +7118,7 @@ body:has(.auth-split) {
 }
 
 .themes-page .item-act:hover:not(:disabled) {
-  background: #f1f0e9;
+  background: #f1f3e4;
 }
 
 .themes-page .item-act:disabled {
@@ -7126,24 +7126,12 @@ body:has(.auth-split) {
   cursor: default;
 }
 
-.themes-page .item-act.quiet {
-  border-color: transparent;
-  color: var(--ft-muted);
-}
-
-.themes-page .item-act.quiet:hover:not(:disabled) {
-  background: transparent;
-  color: var(--ft-ink);
-}
-
 .themes-page .item-act.danger {
-  border-color: transparent;
   color: #b91c1c;
 }
 
 .themes-page .item-act.danger:hover:not(:disabled) {
-  background: #fef2f2;
-  color: #991b1b;
+  background: #fdf0ee;
 }
 
 .themes-page .confirm-inline {
