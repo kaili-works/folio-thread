@@ -67,42 +67,49 @@ export default function AppNav() {
           <div className="app-header-right">
             <Link
               href="/market"
-              className="app-header-market"
+              className="app-header-market icon-only"
               aria-label={t.nav.market}
+              data-tip={t.nav.market}
             >
               <Icon name="market" />
-              {t.nav.market}
             </Link>
             <Link
               href="/library"
-              className={`app-header-quick app-header-library${isActive("/library") ? " active" : ""}`}
+              className={`app-header-quick app-header-library icon-only${isActive("/library") ? " active" : ""}`}
               aria-label={t.nav.libraryShort}
+              data-tip={t.nav.libraryShort}
             >
               <Icon name="library" />
-              {t.nav.libraryShort}
             </Link>
             <Link
               href="/notes"
-              className={`app-header-quick app-header-notes ${isActive("/notes") ? "active" : ""}`}
+              className={`app-header-quick app-header-notes icon-only ${isActive("/notes") ? "active" : ""}`}
               aria-label={t.nav.notes}
+              data-tip={t.nav.notes}
             >
               <Icon name="note" />
-              {t.nav.notes}
             </Link>
             <button
+              className="icon-only"
               aria-label={t.nav.guide}
+              data-tip={t.nav.guide}
               onClick={() => setGuideOpen(true)}
             >
               <Icon name="guide" />
-              {t.nav.guide}
             </button>
             <button
               aria-label={t.nav.switchLanguage}
+              title={t.nav.switchLanguage}
               onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
             >
               {locale === "zh" ? "EN" : "中"}
             </button>
-            <button onClick={logout} aria-label={t.nav.logout} title={t.nav.logout}>
+            <button
+              className="icon-only"
+              onClick={logout}
+              aria-label={t.nav.logout}
+              data-tip={t.nav.logout}
+            >
               <Icon name="exit" />
             </button>
           </div>

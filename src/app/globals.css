@@ -5991,3 +5991,47 @@ body:has(.auth-split) {
   align-items: center;
   justify-content: center;
 }
+
+/* ---- 顶栏次要入口：仅图标 + 悬浮提示（替代常驻文字） ---- */
+.app-header-right .icon-only {
+  position: relative;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.app-header-right .icon-only:hover {
+  background: var(--ft-green-soft);
+  color: var(--ft-ink);
+}
+
+.app-header-right .icon-only::after {
+  content: attr(data-tip);
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--ft-ink);
+  color: #f6f7ee;
+  font-size: 11.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.app-header-right .icon-only:hover::after,
+.app-header-right .icon-only:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 桌面不显示「书库」快捷入口：左侧导航已有同名项 */
+@media (min-width: 769px) {
+  .app-header-quick.app-header-library {
+    display: none;
+  }
+}
