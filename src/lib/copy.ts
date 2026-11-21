@@ -126,15 +126,8 @@ export const copy = {
     deleted: (name: string) => `已删除主题「${name}」。`,
     deleteFailed: (error: string) => `删除失败：${error}`,
     createFailed: (error: string) => `创建失败：${error}`,
-    listGenerated: (fallback: boolean, hint?: string) =>
-      [
-        fallback
-          ? "AI 暂不可用，已按规则生成清单草稿。"
-          : "清单草稿已生成，可以检查并调整。",
-        hint,
-      ]
-        .filter(Boolean)
-        .join(" "),
+    listGenerated: (hint?: string) =>
+      ["清单草稿已生成，可以检查并调整。", hint].filter(Boolean).join(" "),
     listGenerateFailed: (error: string) => `生成失败：${error}`,
     refreshed: (matched: number) => `刷新完成：${matched} 项已可读。`,
     refreshFailed: (error: string) => `刷新失败：${error}`,

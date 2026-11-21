@@ -375,12 +375,7 @@ export default function ThemesPage() {
       setItems(json.items ?? []);
       setListId(json.list?.id ?? null);
       setListStatus(json.list?.status ?? "draft");
-      setMessage(
-        copy.themes.listGenerated(
-          json.source === "rule_fallback",
-          json.hint,
-        ),
-      );
+      setMessage(copy.themes.listGenerated(json.hint));
       // 路径要显示知识点，生成清单后顺手在后台提炼
       if (json.list?.id) void generateKeyPoints(json.list.id, true);
     } else {

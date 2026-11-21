@@ -98,17 +98,6 @@ function matchBooks(recs: Recommendation[], books: Book[]) {
   });
 }
 
-// 规则兜底：库内短篇优先，全部可读
-function fallback(books: Book[]) {
-  const sorted = [...books].sort(
-    (a, b) => (a.total_words_original ?? 0) - (b.total_words_original ?? 0),
-  );
-  return sorted.slice(0, 10).map((b) => ({
-    recommendation: { title: b.title, author: b.author ?? "", reason: "自动推荐：篇幅较短，适合先行阅读" },
-    book: b,
-  }));
-}
-
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
   try {
@@ -138,7 +127,6 @@ export async function POST(request: Request) {
 
     // 调 AI 推荐（失败重试 1 次，再失败走兜底）
     let matched: { recommendation: Recommendation; book?: Book }[] = [];
-    let source = "ai";
     for (let attempt = 0; attempt < 2 && matched.length === 0; attempt++) {
       try {
         const recs = await callDeepSeek(theme.name, theme.description ?? "");
@@ -149,8 +137,13 @@ export async function POST(request: Request) {
     }
 
     if (matched.length === 0) {
-      matched = fallback(books);
-      source = "rule_fallback";
+      const key = await getDeepSeekKey();
+      throw new ApiError(
+        503,
+        key
+          ? "AI 生成失败，请稍后重试"
+          : "未配置 DEEPSEEK_API_KEY，无法生成清单（见 README 的 AI 配置）",
+      );
     }
 
     // 首次生成本人清单，控制在 5–6 项（清单短一点，更容易读完）
@@ -233,7 +226,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       list,
       items,
-      source,
+      source: "ai",
       // 库内可读材料不足时明确提示，而不是堆满待补充项
       hint:
         books.length < 3

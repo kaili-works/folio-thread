@@ -96,16 +96,6 @@ function matchBooks(recs: Recommendation[], books: Book[]) {
   });
 }
 
-function fallback(books: Book[], excludeTitles: string[]) {
-  const sorted = [...books]
-    .filter((b) => !excludeTitles.includes(b.title))
-    .sort((a, b) => (a.total_words_original ?? 0) - (b.total_words_original ?? 0));
-  return sorted.slice(0, 10).map((b) => ({
-    recommendation: { title: b.title, author: b.author ?? "", reason: "自动推荐：篇幅较短，适合先行阅读" },
-    book: b,
-  }));
-}
-
 // 预览：根据提示重新生成「未开始且未锁定」的项，返回 keep/removed/proposed，不写库
 export async function POST(request: Request) {
   const supabase = await createServerSupabase();
@@ -166,7 +156,6 @@ export async function POST(request: Request) {
     const books = (booksData ?? []) as Book[];
 
     let matched: { recommendation: Recommendation; book?: Book }[] = [];
-    let source = "ai";
     for (let attempt = 0; attempt < 2 && matched.length === 0; attempt++) {
       try {
         const recs = await callDeepSeek(theme.name, theme.description ?? "", hint, excludeTitles);
@@ -176,8 +165,13 @@ export async function POST(request: Request) {
       }
     }
     if (matched.length === 0) {
-      matched = fallback(books, excludeTitles);
-      source = "rule_fallback";
+      const key = await getDeepSeekKey();
+      throw new ApiError(
+        503,
+        key
+          ? "AI 生成失败，请稍后重试"
+          : "未配置 DEEPSEEK_API_KEY，无法重新生成清单（见 README 的 AI 配置）",
+      );
     }
     // 一次最多替换 6 本，保持清单短、读得完
     matched = matched.slice(0, 6);
@@ -224,7 +218,7 @@ export async function POST(request: Request) {
       keep,
       removed: toRegenerate,
       proposed,
-      source,
+      source: "ai",
       message: toRegenerate.length === 0 ? "没有可重新生成的未开始项" : null,
     });
   } catch (e) {
