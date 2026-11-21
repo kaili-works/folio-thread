@@ -6035,3 +6035,52 @@ body:has(.auth-split) {
     display: none;
   }
 }
+
+/* ---- 登录页：对齐预览稿版式 ---- */
+.auth-split {
+  max-width: 1060px;
+  min-height: 580px;
+  grid-template-columns: 1.05fr 0.95fr;
+  border-radius: 8px;
+}
+
+.auth-brand {
+  padding: 56px 48px;
+}
+
+.auth-brand h1 {
+  font-size: 40px;
+  letter-spacing: -0.01em;
+}
+
+.auth-panel {
+  padding: 56px 52px;
+}
+
+.auth-panel .auth-intro h2 {
+  font-size: 26px;
+}
+
+/* 中文小标题不需要英文那样的字距 */
+:lang(zh) .kicker {
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 900px) {
+  .auth-split {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .auth-brand {
+    padding: 40px 32px;
+  }
+
+  .auth-brand h1 {
+    font-size: 32px;
+  }
+
+  .auth-panel {
+    padding: 36px 28px;
+  }
+}

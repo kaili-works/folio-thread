@@ -3,18 +3,23 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { copy } from "@/lib/copy";
+import { useT } from "@/i18n";
+
+// 文案按语言实时渲染：错误提示只存类型与参数，切换语言后跟着变。
+type Message =
+  | { kind: "loginFailed"; error: string }
+  | { kind: "registerFailed"; error: string }
+  | { kind: "registerSuccess" };
 
 export default function Home() {
   const supabase = createClient();
   const router = useRouter();
+  const t = useT();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(
-    null,
-  );
+  const [message, setMessage] = useState<Message | null>(null);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -38,7 +43,7 @@ export default function Home() {
     });
     setBusy(false);
     if (error) {
-      setMessage({ text: copy.auth.loginFailed(error.message), ok: false });
+      setMessage({ kind: "loginFailed", error: error.message });
       return;
     }
     if (data.user) {
@@ -53,83 +58,82 @@ export default function Home() {
     const { data, error } = await supabase.auth.signUp({ email, password });
     setBusy(false);
     if (error) {
-      setMessage({ text: copy.auth.registerFailed(error.message), ok: false });
+      setMessage({ kind: "registerFailed", error: error.message });
       return;
     }
     if (data.session?.user) {
       router.push("/today");
     } else {
-      setMessage({
-        text: copy.auth.registerSuccess,
-        ok: true,
-      });
+      setMessage({ kind: "registerSuccess" });
       setMode("login");
     }
   }
+
+  const isLogin = mode === "login";
+  const messageText = message
+    ? message.kind === "registerSuccess"
+      ? t.auth.registerSuccess
+      : message.kind === "loginFailed"
+        ? t.auth.loginFailed(message.error)
+        : t.auth.registerFailed(message.error)
+    : null;
 
   return (
     <div className="auth-wrap">
       <div className="auth-split">
         <aside className="auth-brand">
-          <span className="kicker">FolioThread</span>
-          <h1>页脉研读</h1>
-          <p className="lead">{copy.auth.subtitle}</p>
+          <span className="kicker">{t.auth.brandKicker}</span>
+          <h1>{t.auth.brandTitle}</h1>
+          <p className="lead">{t.auth.brandLead}</p>
           <ol className="auth-steps">
-            <li>
-              <b>1</b>用一句话描述你想研究的主题
-            </li>
-            <li>
-              <b>2</b>由 AI 为你推荐序列书单
-            </li>
-            <li>
-              <b>3</b>每天按预算读一点，逐渐构建你的知识地图
-            </li>
+            {t.auth.steps.map((step, i) => (
+              <li key={i}>
+                <b>{i + 1}</b>
+                {step}
+              </li>
+            ))}
           </ol>
-          <p className="auth-foot">主题研读导航 · 于书海中寻线织脉</p>
+          <p className="auth-foot">{t.auth.foot}</p>
         </aside>
 
         <main className="auth-panel">
           <div className="auth-intro">
-            <h2>{mode === "login" ? "继续今天的阅读" : "建立你的阅读档案"}</h2>
-            <p>
-              {mode === "login"
-                ? "登录后回到今日阅读包。"
-                : "注册后先描述一个主题，我们会为你排一份有序书单。"}
-            </p>
+            <h2>{isLogin ? t.auth.loginTitle : t.auth.registerTitle}</h2>
+            <p>{isLogin ? t.auth.loginIntro : t.auth.registerIntro}</p>
           </div>
 
           <div className="auth-switch">
             <button
               type="button"
-              className={mode === "login" ? "active" : ""}
+              className={isLogin ? "active" : ""}
               onClick={() => {
                 setMode("login");
                 setMessage(null);
               }}
             >
-              登录
+              {t.auth.tabLogin}
             </button>
             <button
               type="button"
-              className={mode === "register" ? "active" : ""}
+              className={!isLogin ? "active" : ""}
               onClick={() => {
                 setMode("register");
                 setMessage(null);
               }}
             >
-              注册
+              {t.auth.tabRegister}
             </button>
           </div>
 
-          <form onSubmit={mode === "login" ? handleLogin : handleRegister}>
-            <label>邮箱</label>
+          <form onSubmit={isLogin ? handleLogin : handleRegister}>
+            <label>{t.auth.email}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <label>密码</label>
+            <label>{t.auth.password}</label>
             <input
               type="password"
               value={password}
@@ -142,21 +146,21 @@ export default function Home() {
               style={{ width: "100%", marginTop: 6 }}
             >
               {busy
-                ? mode === "login"
-                  ? "登录中…"
-                  : "注册中…"
-                : mode === "login"
-                  ? "登录"
-                  : "注册"}
+                ? isLogin
+                  ? t.auth.signingIn
+                  : t.auth.creating
+                : isLogin
+                  ? t.auth.login
+                  : t.auth.register}
             </button>
           </form>
 
           {message && (
             <p
-              className={`message ${message.ok ? "ok" : "err"}`}
+              className={`message ${message.kind === "registerSuccess" ? "ok" : "err"}`}
               style={{ marginTop: 14, marginBottom: 0 }}
             >
-              {message.text}
+              {messageText}
             </p>
           )}
         </main>
