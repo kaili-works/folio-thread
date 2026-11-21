@@ -1,0 +1,30 @@
+# 依赖与构建产物
+node_modules
+.next
+out
+build
+
+# 版本控制与编辑器
+.git
+.gitignore
+.vscode
+.trae
+
+# 敏感环境变量（构建参数由 compose 传入，运行时由 env_file 传入）
+.env
+.env.*
+!.env.example
+
+# 文档、截图、数据库脚本、批量脚本不进入镜像
+*.md
+*.txt
+database
+scripts
+screenshots
+docs
+
+# 杂项
+*.log
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts

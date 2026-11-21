@@ -1,0 +1,24 @@
+FolioThread（页脉研读）
+=======================
+
+本文件说明仓库内不同内容的许可边界。代码许可见 LICENSE。
+
+1. 源代码
+   除本文件明确列出的内容外，本仓库源代码以 MIT 许可发布。
+
+2. 音频素材
+   background-music/rain-loop.mp3 与 background-music/piano-loop.mp3 由本仓库的
+   scripts/make_audio.py 纯程序合成（滤波噪声与合成音符），不包含任何第三方录音、
+   采样或音乐作品。
+
+   作者将这两个音频文件以 CC0 1.0 Universal（公共领域贡献）放弃权利：
+   https://creativecommons.org/publicdomain/zero/1.0/
+
+   它们不属于 MIT 许可范围，但可自由使用、修改与再分发。
+
+3. 不包含的内容
+   本仓库不包含任何书籍正文、封面或用户数据。导入的 EPUB 仅保存在部署者自己的
+   Supabase 项目中，不进入版本库与仓库历史。
+
+4. 第三方依赖
+   运行依赖遵循各自的许可，见 package.json 及依赖包内的 LICENSE 文件。

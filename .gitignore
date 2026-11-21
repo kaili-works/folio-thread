@@ -1,0 +1,42 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# env（敏感信息，勿提交）
+.env
+.env*.local
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# 构建备份与运行时日志（.next.bak_* / .next.old_* / .next_old_* 等全部忽略）
+/.next*/
+app.log
+*.log
+
+# 与主应用无关的设计稿与素材
+/design-preview/
+/三联画生成/
+/金毛小狗_线稿角色_assets/
+/.workbuddy/
+/.trae-html-share-packages/
+# 引导页/主题选择器的本地预览稿
+/预览_*.html
+# 由 background-music/ 同步生成的音频副本（npm run build/dev/start 前自动复制）
+/public/audio/*.mp3

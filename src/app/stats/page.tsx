@@ -1,0 +1,557 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CSSProperties } from "react";
+import Link from "next/link";
+import AppNav from "@/components/AppNav";
+import { copy } from "@/lib/copy";
+import { DOMAINS, domainOrDefault } from "@/lib/domains";
+
+type ThemeItem = {
+  id: string;
+  title: string;
+  status: string;
+  availability: string;
+  document_id: string | null;
+  key_points: string[];
+  weread_progress: number | null;
+  progress: number | null;
+};
+
+type ThemeStat = {
+  id: string;
+  name: string;
+  domain: string | null;
+  status: string;
+  total: number;
+  completed: number;
+  current_title: string | null;
+  current_document_id: string | null;
+  items: ThemeItem[];
+};
+
+type CompletedItem = {
+  id: string;
+  title: string;
+  theme: string;
+  completed_at: string | null;
+};
+
+type Stats = {
+  themes: ThemeStat[];
+  domain_ready: boolean;
+  unclassified: number;
+  books: { completed_books: number; completed_chapters: number };
+  words: { original: number; translated_estimate: number };
+  completed_items: CompletedItem[];
+};
+
+function itemState(it: ThemeItem) {
+  if (it.status === "completed") return "已读完";
+  if (it.status === "in_progress") return "在读";
+  if (it.status === "skipped") return "已跳过";
+  if (it.status === "shelved") return "已搁置";
+  if (it.availability === "pending_supplement") {
+    return it.weread_progress !== null ? `微信读书 ${it.weread_progress}%` : "待补充";
+  }
+  return "未开始";
+}
+
+function themePct(t: ThemeStat) {
+  return t.total > 0 ? Math.round((t.completed / t.total) * 100) : 0;
+}
+
+export default function StatsPage() {
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [message, setMessage] = useState("");
+  const [openThemeId, setOpenThemeId] = useState<string | null>(null);
+  const [liftedId, setLiftedId] = useState<string | null>(null);
+  const classifyTried = useRef(false);
+
+  async function loadStats() {
+    try {
+      const res = await fetch("/api/stats");
+      const json = await res.json();
+      if (json.error) setMessage(json.error);
+      else setStats(json as Stats);
+    } catch {
+      setMessage("统计加载失败");
+    }
+  }
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  // 还有未归类主题时，后台让 AI 归一次，完成后刷新
+  useEffect(() => {
+    if (!stats || !stats.domain_ready || stats.unclassified === 0) return;
+    if (classifyTried.current) return;
+    classifyTried.current = true;
+    fetch("/api/themes/classify", { method: "POST" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.updated > 0) loadStats();
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stats]);
+
+  function closeTheme() {
+    setOpenThemeId(null);
+    setLiftedId(null);
+  }
+
+  function exportMarkdown() {
+    if (!stats) return;
+    const lines: string[] = ["# 已读清单", ""];
+    for (const it of stats.completed_items) {
+      const time = it.completed_at
+        ? new Date(it.completed_at).toLocaleString()
+        : "—";
+      lines.push(`- ${it.title}（${it.theme}） · ${time}`);
+    }
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/markdown;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "已读清单.md";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const overallTotal = stats
+    ? stats.themes.reduce((sum, t) => sum + t.total, 0)
+    : 0;
+  const overallCompleted = stats
+    ? stats.themes.reduce((sum, t) => sum + t.completed, 0)
+    : 0;
+  const overallPct =
+    overallTotal > 0 ? Math.round((overallCompleted / overallTotal) * 100) : 0;
+  const finishedThemes = stats
+    ? stats.themes.filter((t) => t.total > 0 && t.completed >= t.total).length
+    : 0;
+  // 最近读完日期，用于右上角小字
+  const lastDoneLabel = useMemo(() => {
+    const times = (stats?.completed_items ?? [])
+      .map((it) => it.completed_at)
+      .filter((v): v is string => Boolean(v))
+      .sort();
+    const last = times[times.length - 1];
+    return last
+      ? new Date(last).toLocaleDateString("zh-CN").replace(/\//g, ".")
+      : "";
+  }, [stats]);
+
+  // 按固定领域顺序分篮子，空领域不显示
+  const groups = useMemo(() => {
+    if (!stats) return [];
+    const map = new Map<string, ThemeStat[]>();
+    for (const t of stats.themes) {
+      const d = domainOrDefault(t.domain);
+      const arr = map.get(d) ?? [];
+      arr.push(t);
+      map.set(d, arr);
+    }
+    return DOMAINS.filter((d) => (map.get(d)?.length ?? 0) > 0).map((d) => ({
+      domain: d,
+      themes: map.get(d) ?? [],
+    }));
+  }, [stats]);
+
+  const openTheme = stats?.themes.find((t) => t.id === openThemeId) ?? null;
+
+  return (
+    <>
+      <AppNav />
+      <div className="container app-main">
+        <div className="page-head page-head-row">
+          <div>
+            <span className="kicker">Stats</span>
+            <h1>阅读统计</h1>
+          </div>
+          {stats && stats.completed_items.length > 0 && (
+            <button className="btn-ghost btn-sm" onClick={exportMarkdown}>
+              导出已读清单
+            </button>
+          )}
+        </div>
+
+        {message && <p className="message err">{message}</p>}
+
+        {!stats ? (
+          <p className="muted">加载中…</p>
+        ) : (
+          <>
+            <section>
+              {overallTotal === 0 ? (
+                <p className="muted">{copy.stats.noItems}</p>
+              ) : (
+                <>
+                  <div className="hero-row">
+                    <div className="hero-main">
+                      <div className="stat-hero">{overallPct}%</div>
+                      <div className="progress">
+                        <span
+                          className={`progress-fill${overallPct >= 100 ? " done" : ""}`}
+                          style={{ width: `${overallPct}%` }}
+                        />
+                      </div>
+                      <div className="progress-meta">
+                        <span>全部主题合计</span>
+                        <span>
+                          {overallCompleted}/{overallTotal} 项 · {finishedThemes}/
+                          {stats.themes.length} 个主题已完成
+                        </span>
+                      </div>
+                    </div>
+                    {stats.completed_items.length > 0 && (
+                      <div className="hero-side">
+                        已读清单
+                        <br />
+                        {stats.completed_items.length} 本
+                        {lastDoneLabel ? ` · 最近读完 ${lastDoneLabel}` : ""}
+                      </div>
+                    )}
+                  </div>
+                  {overallPct >= 100 && (
+                    <div
+                      className="completion-banner"
+                      style={{ marginTop: 18, marginBottom: 0 }}
+                    >
+                      所有阅读清单都已完成
+                      <span className="sub">可以开始新的研究主题了。</span>
+                    </div>
+                  )}
+                </>
+              )}
+
+              <div className="stat-strip">
+                <div className="cell">
+                  <div className="k">完成整本</div>
+                  <div className="v">
+                    {stats.books.completed_books}
+                    <small>本</small>
+                  </div>
+                </div>
+                <div className="cell">
+                  <div className="k">完成章节</div>
+                  <div className="v">
+                    {stats.books.completed_chapters}
+                    <small>章</small>
+                  </div>
+                </div>
+                <div className="cell">
+                  <div className="k">完成字数</div>
+                  <div className="v">
+                    {stats.words.original.toLocaleString("zh-CN")}
+                    <small>字</small>
+                  </div>
+                </div>
+              </div>
+              <p className="stat-note">
+                中文按字数计、非中文按词数计；未完成章节不计入。译文估算{" "}
+                {stats.words.translated_estimate.toLocaleString("zh-CN")} 字。
+              </p>
+            </section>
+
+            <section className="stats-section">
+              <div className="card-head">
+                <span className="kicker">领域篮子</span>
+                <span style={{ fontSize: 10.5, color: "var(--ft-faint)" }}>
+                  点卡片抽出，再点打开书目
+                </span>
+              </div>
+
+              {!stats.domain_ready && (
+                <p className="message" style={{ marginTop: 4 }}>
+                  领域归类还没启用：请在 Supabase SQL Editor 执行
+                  database/0008_theme_domain.sql（为 themes 增加 domain
+                  列），刷新后会自动归类。
+                </p>
+              )}
+
+              {stats.themes.length === 0 ? (
+                <p className="muted">{copy.stats.noThemes}</p>
+              ) : (
+                <div className="baskets">
+                  {groups.map((g, gi) => {
+                    const books = g.themes.reduce((s, t) => s + t.total, 0);
+                    const done = g.themes.reduce((s, t) => s + t.completed, 0);
+                    const pct = books > 0 ? Math.round((done / books) * 100) : 0;
+                    const n = g.themes.length;
+                    const fit = n > 1 ? (100 - 43.5) / (n - 1) : 10;
+                    const gap = Math.min(14, fit);
+                    const gapHover = n === 2 ? 22 : gap;
+                    return (
+                      <div className="basket-block" key={g.domain}>
+                        <div className="domain-head">
+                          <h2>{g.domain}</h2>
+                          <span className="meta">
+                            {n} 个清单 · {books} 本 · 完成 {pct}%
+                          </span>
+                        </div>
+                      <div className="basket" onClick={() => setLiftedId(null)}>
+                        {/* 后层：托盘后壁与内壁 */}
+                        <svg
+                          className="box back"
+                          viewBox="0 0 360 330"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <defs>
+                            <linearGradient
+                              id={`bx-in-${gi}`}
+                              x1="0"
+                              y1="0"
+                              x2="0"
+                              y2="1"
+                            >
+                              <stop
+                                offset="0"
+                                stopColor="#111827"
+                                stopOpacity=".2"
+                              />
+                              <stop
+                                offset="1"
+                                stopColor="#111827"
+                                stopOpacity="0"
+                              />
+                            </linearGradient>
+                          </defs>
+                          <ellipse
+                            cx="180"
+                            cy="312"
+                            rx="136"
+                            ry="8"
+                            fill="#111827"
+                            opacity=".06"
+                          />
+                          <path
+                            d="M54 168 H306 V296 Q306 306 294 306 H66 Q54 306 54 296 Z"
+                            fill="#f1efe9"
+                            stroke="#111827"
+                            strokeWidth="1.4"
+                          />
+                          <path
+                            d="M54 168 H306 V226 H54 Z"
+                            fill={`url(#bx-in-${gi})`}
+                          />
+                        </svg>
+
+                        <div
+                          className="basket-cards"
+                          style={
+                            {
+                              "--gap": `${gap}%`,
+                              "--gap-h": `${gapHover}%`,
+                            } as CSSProperties
+                          }
+                        >
+                          {g.themes.map((t, i) => {
+                            const p = themePct(t);
+                            const isDone =
+                              t.total > 0 && t.completed >= t.total;
+                            const points = t.items.reduce(
+                              (s, it) => s + it.key_points.length,
+                              0,
+                            );
+                            return (
+                              <button
+                                type="button"
+                                className={`basket-card${liftedId === t.id ? " is-lifted" : ""}`}
+                                key={t.id}
+                                style={{ "--i": i } as CSSProperties}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (liftedId === t.id) setOpenThemeId(t.id);
+                                  else setLiftedId(t.id);
+                                }}
+                              >
+                                <span className="basket-name">{t.name}</span>
+                                <span className="basket-meta">
+                                  {t.total} 本 · 已读 {t.completed}
+                                  {t.status === "priority" ? " · 优先" : ""}
+                                </span>
+                                <span className="basket-track">
+                                  <span
+                                    className={isDone ? "done" : ""}
+                                    style={{ width: `${p}%` }}
+                                  />
+                                </span>
+                                <span className="basket-foot">
+                                  <span>{p}%</span>
+                                  <span>知识点 {points}</span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* 前壁：压在卡片上，挡住卡脚 */}
+                        <svg
+                          className="box front"
+                          viewBox="0 0 360 330"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M40 196 H320 V292 Q320 308 300 308 H60 Q40 308 40 292 Z"
+                            fill="#fbfaf7"
+                            stroke="#111827"
+                            strokeWidth="2"
+                          />
+                          <path
+                            d="M56 214 H304"
+                            stroke="#111827"
+                            strokeOpacity=".18"
+                            strokeWidth="1.2"
+                          />
+                        </svg>
+
+                        <span className="box-label">
+                          {books > 0 ? `${books} 本` : "空盒子"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="stats-section">
+              <div className="card-head done-head">
+                <span className="kicker">已读清单</span>
+                {stats.completed_items.length > 0 && (
+                  <button
+                    className="btn-mini-line"
+                    onClick={exportMarkdown}
+                  >
+                    导出已读清单
+                  </button>
+                )}
+              </div>
+              {stats.completed_items.length === 0 ? (
+                <p className="muted">{copy.stats.noFinished}</p>
+              ) : (
+                <div className="done-list">
+                  {stats.completed_items.map((it) => (
+                    <div className="done-row" key={it.id}>
+                      <div>
+                        <span className="t">{it.title}</span>
+                        <span className="m"> · {it.theme}</span>
+                      </div>
+                      {it.completed_at && (
+                        <span className="d">
+                          {new Date(it.completed_at)
+                            .toLocaleDateString("zh-CN")
+                            .replace(/\//g, ".")}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+      </div>
+
+      {/* 清单抽屉：桌面右侧滑出，手机底部弹出 */}
+      {openTheme && (
+        <>
+          <div
+            className="drawer-overlay"
+            onClick={closeTheme}
+          />
+          <aside className="drawer sheet">
+            <div className="drawer-head">
+              <div style={{ minWidth: 0 }}>
+                <span className="kicker">
+                  {domainOrDefault(openTheme.domain)}
+                </span>
+                <h2 style={{ marginTop: 4 }}>{openTheme.name}</h2>
+              </div>
+              <button
+                className="btn-quiet btn-sm"
+                onClick={closeTheme}
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className="progress">
+              <span
+                className={`progress-fill${themePct(openTheme) >= 100 ? " done" : ""}`}
+                style={{ width: `${themePct(openTheme)}%` }}
+              />
+            </div>
+            <div className="progress-meta">
+              <span>
+                {openTheme.completed}/{openTheme.total} 项
+              </span>
+              <span>{themePct(openTheme)}%</span>
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              {openTheme.items.length === 0 ? (
+                <p className="muted" style={{ fontSize: 12 }}>
+                  这个清单还没有书目。
+                </p>
+              ) : (
+                openTheme.items.map((it, idx) => (
+                  <div className="basket-book" key={it.id}>
+                    <div className="basket-book-head">
+                      <span className="idx">
+                        {String(idx + 1).padStart(2, "0")}
+                      </span>
+                      {it.document_id ? (
+                        <Link
+                          className="t"
+                          href={`/books/${it.document_id}`}
+                          onClick={closeTheme}
+                        >
+                          {it.title}
+                        </Link>
+                      ) : (
+                        <span className="t">{it.title}</span>
+                      )}
+                      <span className="chip">{itemState(it)}</span>
+                    </div>
+                    {it.progress !== null && (
+                      <div className="basket-book-prog">
+                        <span className="track">
+                          <span
+                            className="bar"
+                            style={{ width: `${it.progress}%` }}
+                          />
+                        </span>
+                        <span className="label">{it.progress}%</span>
+                      </div>
+                    )}
+                    {it.key_points.length > 0 && (
+                      <div className="basket-points">
+                        {it.key_points.map((p) => (
+                          <span className="chip" key={p}>
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <p className="muted" style={{ fontSize: 11, marginTop: 14 }}>
+              领域可改：<Link href="/themes">主题与清单 →</Link>
+            </p>
+          </aside>
+        </>
+      )}
+    </>
+  );
+}
