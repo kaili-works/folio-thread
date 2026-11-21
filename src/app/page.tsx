@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { useT } from "@/i18n";
+import { useI18n, useT } from "@/i18n";
 
 // 文案按语言实时渲染：错误提示只存类型与参数，切换语言后跟着变。
 type Message =
@@ -15,6 +15,7 @@ export default function Home() {
   const supabase = createClient();
   const router = useRouter();
   const t = useT();
+  const { locale, setLocale } = useI18n();
 
   const [mode, setMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -80,6 +81,15 @@ export default function Home() {
 
   return (
     <div className="auth-wrap">
+      <button
+        type="button"
+        className="auth-lang"
+        aria-label={t.nav.switchLanguage}
+        title={t.nav.switchLanguage}
+        onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+      >
+        {locale === "zh" ? "EN" : "中"}
+      </button>
       <div className="auth-split">
         <aside className="auth-brand">
           <span className="kicker">{t.auth.brandKicker}</span>

@@ -6084,3 +6084,29 @@ body:has(.auth-split) {
     padding: 36px 28px;
   }
 }
+
+/* 登录页语言切换：页面没有顶栏，需要单独入口 */
+.auth-wrap {
+  position: relative;
+}
+
+.auth-lang {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  padding: 6px 10px;
+  border: 1px solid var(--ft-rule);
+  border-radius: 7px;
+  background: var(--ft-paper);
+  color: var(--ft-muted);
+  font-family: var(--font-sans);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.auth-lang:hover {
+  color: var(--ft-ink);
+  border-color: var(--ft-green);
+}
