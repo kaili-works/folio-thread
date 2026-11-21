@@ -63,58 +63,6 @@ export const copy = {
     ],
   },
 
-  themes: {
-    createHelp:
-      "用自然语言写下你感兴趣的阅读主题。创建后点「让 AI 推荐书单」，模型会挑 5–6 本并按由浅入深排好顺序；之后可微调或重新生成，确认清单后再到书库补 EPUB。如果书库还没有 EPUB、但微信读书上有对应书源，今日包会直接使用微信读书链接。",
-    statusHelp:
-      "想先读的主题设为「优先」，暂时不读的设为「搁置」，搁置的主题不会排进今日包。改完到「今日」重新生成。",
-    emptyThemes: "还没有主题。在上方写下想研究的问题，就能开始组书。",
-    emptyList:
-      "这里还空着。AI 会按你对主题的自然语言描述推荐 5–6 本，按由浅入深排好；生成后可以逐本删改。",
-    listNoBooks:
-      "这份清单里的书还不能读：书库没有对应的 EPUB，也没匹配到微信读书。上传后再点「刷新」，系统会自动按书名匹配。",
-    budgetInvalid: "每日阅读预算需在 5~180 分钟之间。",
-    replaced: (title: string) => (title ? `已换成《${title}》。` : "已换一本。"),
-    replaceFailed: (error: string | number) => `换书失败：${error}`,
-    budgetSaved:
-      "预算已保存。点「重新生成」立即按新预算切分，不点则次日自动生效。",
-    budgetSaveFailed: (error: string) => `保存失败：${error}`,
-    budgetHelp:
-      "预算 × 阅读速度决定每天读多少；改完点「重新生成」立即生效，否则次日自动生效。",
-    itemUpdateFailed: (error: string) => `更新失败：${error}`,
-    statusUpdated: (status: string) =>
-      status === "shelved"
-        ? "已搁置：该主题不再排入今日包，已完成的阅读记录会保留。"
-        : status === "priority"
-          ? "已设为优先。"
-          : "已恢复正常排序。",
-    deleteConfirm: (name: string) =>
-      `删除主题「${name}」及其清单？此操作不可撤销。`,
-    deleted: (name: string) => `已删除主题「${name}」。`,
-    deleteFailed: (error: string) => `删除失败：${error}`,
-    createFailed: (error: string) => `创建失败：${error}`,
-    listGenerated: (hint?: string) =>
-      ["清单草稿已生成，可以检查并调整。", hint].filter(Boolean).join(" "),
-    listGenerateFailed: (error: string) => `生成失败：${error}`,
-    refreshed: (matched: number) => `刷新完成：${matched} 项已可读。`,
-    refreshFailed: (error: string) => `刷新失败：${error}`,
-    regenFailed: (error: string) => `重新生成失败：${error}`,
-    regenApplied: "已替换清单，可在下方撤销。",
-    regenApplyFailed: (error: string) => `替换失败：${error}`,
-    regenUndone: "已撤销，清单恢复原样。",
-    regenUndoFailed: (error: string) => `撤销失败：${error}`,
-    confirmFailed: (error: string) => `确认失败：${error}`,
-    confirmed: "清单已确认，后续阅读按此清单安排。",
-    keyPointsRunning: "清单已确认，正在从章节标题提炼知识点…",
-    keyPointsDone: (n: number) =>
-      n > 0 ? `已为 ${n} 本书生成知识点。` : "没有需要生成的知识点。",
-    keyPointsFailed: (error: string) => `知识点生成失败：${error}`,
-    regenPreview: (kept: number, removed: number) =>
-      `保留 ${kept} 项，替换 ${removed} 项，新增如下：`,
-    completionBanner: (name: string) => `《${name}》的清单已读完`,
-    completionSub: (count: number) => `共 ${count} 项`,
-  },
-
   market: {
     intro:
       "这里整理了搭配好的主题书单，选中即可转为你的清单；也可以随机生成一份新的。",

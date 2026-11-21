@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import AppNav from "@/components/AppNav";
-import { copy } from "@/lib/copy";
+import { useT } from "@/i18n";
 import { DOMAINS } from "@/lib/domains";
 
 type Theme = {
@@ -45,20 +46,17 @@ type ListItem = {
   documents: { title: string; author: string } | null;
 };
 
-// 节点上的状态文案
-function itemStateLabel(it: ListItem) {
-  if (it.availability === "pending_supplement") return "待补充";
-  if (it.status === "completed") return "已读完";
-  if (it.status === "in_progress") return "在读";
-  if (it.status === "skipped") return "已跳过";
-  if (it.status === "shelved") return "已搁置";
-  return "未开始";
-}
-
+// 节点上的状态文案由页面内按语言生成
 export default function ThemesPage() {
   const supabase = createClient();
+  const router = useRouter();
+  const t = useT();
 
   const [themes, setThemes] = useState<Theme[]>([]);
+  // 每个主题最新清单的项数与已读数，用于左轨摘要
+  const [themeStats, setThemeStats] = useState<
+    Record<string, { total: number; done: number }>
+  >({});
   const [themesLoaded, setThemesLoaded] = useState(false);
   const [activeTheme, setActiveTheme] = useState<Theme | null>(null);
   const [items, setItems] = useState<ListItem[]>([]);
@@ -77,7 +75,13 @@ export default function ThemesPage() {
     itemId: string;
   } | null>(null);
   // 清单视图：路径（默认）/ 列表
-  const [view, setView] = useState<"path" | "list">("list");
+  const [view, setView] = useState<"path" | "list">("path");
+  // 路径节点内展开的管理动作
+  const [manageItemId, setManageItemId] = useState<string | null>(null);
+  // 一句话调整面板
+  const [adjustOpen, setAdjustOpen] = useState(false);
+  // 生成今日包
+  const [packBusy, setPackBusy] = useState(false);
   // 每本书的章节级进度，按 document_id 索引
   const [bookProgress, setBookProgress] = useState<
     Record<string, { done: number; total: number; current: number }>
@@ -116,10 +120,13 @@ export default function ThemesPage() {
   const [pickerOpen, setPickerOpen] = useState(false);
 
   async function loadThemes() {
-    const { data } = await supabase
-      .from("themes")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [{ data }, { data: lists }] = await Promise.all([
+      supabase.from("themes").select("*").order("created_at", { ascending: false }),
+      supabase
+        .from("reading_lists")
+        .select("id, theme_id, created_at")
+        .order("created_at", { ascending: false }),
+    ]);
     const list = sortThemes((data as Theme[]) ?? []);
     setThemes(list);
     setThemesLoaded(true);
@@ -127,6 +134,33 @@ export default function ThemesPage() {
     if (list.length > 0 && !activeTheme) {
       selectTheme(list[0]);
     }
+
+    // 左轨摘要：每个主题取最新一份清单，统计可推进项与已读数
+    const latestList = new Map<string, string>();
+    for (const l of lists ?? []) {
+      if (!latestList.has(l.theme_id)) latestList.set(l.theme_id, l.id);
+    }
+    const listTheme = new Map((lists ?? []).map((l) => [l.id, l.theme_id]));
+    const stats: Record<string, { total: number; done: number }> = {};
+    for (const id of latestList.values()) {
+      const themeId = listTheme.get(id);
+      if (themeId) stats[themeId] = { total: 0, done: 0 };
+    }
+    const listIds = Array.from(latestList.values());
+    if (listIds.length > 0) {
+      const { data: its } = await supabase
+        .from("list_items")
+        .select("reading_list_id, status")
+        .in("reading_list_id", listIds)
+        .is("deleted_at", null);
+      for (const it of its ?? []) {
+        const themeId = listTheme.get(it.reading_list_id);
+        if (!themeId || !stats[themeId]) continue;
+        stats[themeId].total += 1;
+        if (it.status === "completed") stats[themeId].done += 1;
+      }
+    }
+    setThemeStats(stats);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }
 
@@ -243,18 +277,47 @@ export default function ThemesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function selectTheme(t: Theme) {
-    setActiveTheme(t);
-    setThemeBudget(String(t.daily_budget_minutes ?? 30));
+  function selectTheme(next: Theme) {
+    setActiveTheme(next);
+    setThemeBudget(String(next.daily_budget_minutes ?? 30));
     setMessage("");
-    loadList(t.id);
+    setManageItemId(null);
+    loadList(next.id);
+  }
+
+  function itemStateLabel(it: ListItem) {
+    if (it.availability === "pending_supplement") return t.themes.statePending;
+    if (it.status === "completed") return t.themes.stateDone;
+    if (it.status === "in_progress") return t.themes.stateReading;
+    if (it.status === "skipped") return t.themes.stateSkipped;
+    if (it.status === "shelved") return t.themes.stateShelved;
+    return t.themes.stateUnread;
+  }
+
+  // 按当前清单生成今日包，生成后直接去今日页
+  async function generateTodayPack() {
+    if (packBusy) return;
+    setPackBusy(true);
+    try {
+      const res = await fetch("/api/daily-pack", { method: "POST" });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        setMessage(t.themes.packFailed(json.error ?? res.status));
+        return;
+      }
+      router.push("/today");
+    } catch (e) {
+      setMessage(t.themes.packFailed(e instanceof Error ? e.message : "network"));
+    } finally {
+      setPackBusy(false);
+    }
   }
 
   async function saveThemeBudget() {
     if (!activeTheme) return;
     const minutes = Number(themeBudget);
     if (!Number.isFinite(minutes) || minutes < 5 || minutes > 180) {
-      setMessage(copy.themes.budgetInvalid);
+      setMessage(t.themes.budgetInvalid);
       return;
     }
     const res = await fetch(`/api/themes/${activeTheme.id}`, {
@@ -268,38 +331,38 @@ export default function ThemesPage() {
       setThemes((prev) =>
         prev.map((t) => (t.id === json.theme.id ? json.theme : t)),
       );
-      setMessage(copy.themes.budgetSaved);
+      setMessage(t.themes.budgetSaved);
     } else {
-      setMessage(copy.themes.budgetSaveFailed(json.error ?? res.status));
+      setMessage(t.themes.budgetSaveFailed(json.error ?? res.status));
     }
   }
 
-  async function patchThemeDomain(t: Theme, domain: string) {
-    const res = await fetch(`/api/themes/${t.id}`, {
+  async function patchThemeDomain(theme: Theme, domain: string) {
+    const res = await fetch(`/api/themes/${theme.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ domain: domain || null }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setMessage(json.error ?? "领域保存失败");
+      setMessage(t.themes.domainSaveFailed(json.error ?? res.status));
       return;
     }
     const updated = json.theme as Theme;
     setThemes((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
     setActiveTheme((prev) => (prev?.id === updated.id ? updated : prev));
-    setMessage(`领域已更新为「${updated.domain ?? "未归类"}」`);
+    setMessage(t.themes.domainUpdated(updated.domain ?? t.themes.uncategorized));
   }
 
-  async function patchThemeStatus(t: Theme, status: string) {
-    const res = await fetch(`/api/themes/${t.id}`, {
+  async function patchThemeStatus(theme: Theme, status: string) {
+    const res = await fetch(`/api/themes/${theme.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setMessage(copy.themes.itemUpdateFailed(json.error ?? res.status));
+      setMessage(t.themes.itemUpdateFailed(json.error ?? res.status));
       return;
     }
     const updated = json.theme as Theme;
@@ -307,27 +370,27 @@ export default function ThemesPage() {
       sortThemes(prev.map((x) => (x.id === updated.id ? updated : x))),
     );
     setActiveTheme((prev) => (prev?.id === updated.id ? updated : prev));
-    setMessage(copy.themes.statusUpdated(status));
+    setMessage(t.themes.statusUpdated(status));
   }
 
-  async function deleteTheme(t: Theme) {
-    if (!confirm(copy.themes.deleteConfirm(t.name))) {
+  async function deleteTheme(theme: Theme) {
+    if (!confirm(t.themes.deleteConfirm(theme.name))) {
       return;
     }
-    const res = await fetch(`/api/themes/${t.id}`, { method: "DELETE" });
+    const res = await fetch(`/api/themes/${theme.id}`, { method: "DELETE" });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setMessage(copy.themes.deleteFailed(json.error ?? res.status));
+      setMessage(t.themes.deleteFailed(json.error ?? res.status));
       return;
     }
-    setThemes((prev) => prev.filter((x) => x.id !== t.id));
-    if (activeTheme?.id === t.id) {
+    setThemes((prev) => prev.filter((x) => x.id !== theme.id));
+    if (activeTheme?.id === theme.id) {
       setActiveTheme(null);
       setItems([]);
       setListId(null);
       setListStatus("");
     }
-    setMessage(copy.themes.deleted(t.name));
+    setMessage(t.themes.deleted(theme.name));
   }
 
   async function createTheme(e: React.FormEvent) {
@@ -356,7 +419,7 @@ export default function ThemesPage() {
         });
       }, 150);
     } else {
-      setMessage(copy.themes.createFailed(json.error ?? res.status));
+      setMessage(t.themes.createFailed(json.error ?? res.status));
     }
   }
 
@@ -375,11 +438,11 @@ export default function ThemesPage() {
       setItems(json.items ?? []);
       setListId(json.list?.id ?? null);
       setListStatus(json.list?.status ?? "draft");
-      setMessage(copy.themes.listGenerated(json.hint));
+      setMessage(t.themes.listGenerated(json.hint));
       // 路径要显示知识点，生成清单后顺手在后台提炼
       if (json.list?.id) void generateKeyPoints(json.list.id, true);
     } else {
-      setMessage(copy.themes.listGenerateFailed(json.error ?? res.status));
+      setMessage(t.themes.listGenerateFailed(json.error ?? res.status));
     }
   }
 
@@ -389,10 +452,10 @@ export default function ThemesPage() {
     const res = await fetch("/api/lists/refresh", { method: "POST" });
     const json = await res.json().catch(() => ({}));
     if (res.ok) {
-      setMessage(copy.themes.refreshed(json.matched?.length ?? 0));
+      setMessage(t.themes.refreshed(json.matched?.length ?? 0));
       loadList(activeTheme.id);
     } else {
-      setMessage(copy.themes.refreshFailed(json.error ?? res.status));
+      setMessage(t.themes.refreshFailed(json.error ?? res.status));
     }
   }
 
@@ -418,7 +481,7 @@ export default function ThemesPage() {
       });
       if (json.message) setRegenMessage(json.message);
     } else {
-      setRegenMessage(copy.themes.regenFailed(json.error ?? res.status));
+      setRegenMessage(t.themes.regenFailed(json.error ?? res.status));
     }
   }
 
@@ -443,9 +506,9 @@ export default function ThemesPage() {
       if (activeTheme) await loadList(activeTheme.id);
       // 新替换进来的书还没有知识点，后台补一下
       void generateKeyPoints(undefined, true);
-      setRegenMessage(copy.themes.regenApplied);
+      setRegenMessage(t.themes.regenApplied);
     } else {
-      setRegenMessage(copy.themes.regenApplyFailed(json.error ?? res.status));
+      setRegenMessage(t.themes.regenApplyFailed(json.error ?? res.status));
     }
   }
 
@@ -471,9 +534,9 @@ export default function ThemesPage() {
     if (res.ok) {
       setUndoInfo(null);
       if (activeTheme) await loadList(activeTheme.id);
-      setRegenMessage(copy.themes.regenUndone);
+      setRegenMessage(t.themes.regenUndone);
     } else {
-      setRegenMessage(copy.themes.regenUndoFailed(json.error ?? res.status));
+      setRegenMessage(t.themes.regenUndoFailed(json.error ?? res.status));
     }
   }
 
@@ -481,7 +544,7 @@ export default function ThemesPage() {
   async function enrichWeread() {
     if (!listId) return;
     setWereadBusy(true);
-    setMessage("正在查询微信读书…");
+    setMessage(t.themes.wereadSearching);
     const res = await fetch("/api/lists/weread-enrich", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -492,14 +555,14 @@ export default function ThemesPage() {
     if (res.ok) {
       if (activeTheme) await loadList(activeTheme.id);
       if (json.updated > 0) {
-        setMessage(`已在微信读书找到 ${json.updated} 本可读版本`);
+        setMessage(t.themes.wereadFound(json.updated));
       } else if (json.checked === 0) {
-        setMessage("没有需要查询的书");
+        setMessage(t.themes.wereadNoNeed);
       } else {
-        setMessage("这些书在微信读书暂未找到");
+        setMessage(t.themes.wereadNotFound);
       }
     } else {
-      setMessage(json.error ?? "微信读书查询失败");
+      setMessage(t.themes.wereadFailed(json.error ?? res.status));
     }
   }
 
@@ -508,7 +571,7 @@ export default function ThemesPage() {
     const id = targetListId ?? listId;
     if (!id) return;
     setGenPoints(true);
-    if (!quiet) setMessage(copy.themes.keyPointsRunning);
+    if (!quiet) setMessage(t.themes.keyPointsRunning);
     const res = await fetch("/api/lists/keypoints", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -518,9 +581,9 @@ export default function ThemesPage() {
     setGenPoints(false);
     if (res.ok) {
       if (activeTheme) await loadList(activeTheme.id);
-      if (!quiet) setMessage(copy.themes.keyPointsDone(json.updated ?? 0));
+      if (!quiet) setMessage(t.themes.keyPointsDone(json.updated ?? 0));
     } else if (!quiet) {
-      setMessage(copy.themes.keyPointsFailed(json.error ?? res.status));
+      setMessage(t.themes.keyPointsFailed(json.error ?? res.status));
     }
   }
 
@@ -532,11 +595,11 @@ export default function ThemesPage() {
       .update({ status: "active" })
       .eq("id", listId);
     if (error) {
-      setMessage(copy.themes.confirmFailed(error.message));
+      setMessage(t.themes.confirmFailed(error.message));
       return;
     }
     setListStatus("active");
-    setMessage(copy.themes.confirmed);
+    setMessage(t.themes.confirmedMsg);
     void generateKeyPoints();
   }
 
@@ -565,9 +628,9 @@ export default function ThemesPage() {
     setReplacingId(null);
     if (res.ok) {
       if (activeTheme) await loadList(activeTheme.id);
-      setMessage(copy.themes.replaced(json.title ?? ""));
+      setMessage(t.themes.replaced(json.title ?? ""));
     } else {
-      setMessage(copy.themes.replaceFailed(json.error ?? res.status));
+      setMessage(t.themes.replaceFailed(json.error ?? res.status));
     }
   }
 
@@ -604,6 +667,9 @@ export default function ThemesPage() {
     (it) => it.status === "completed",
   ).length;
   const trackedTotal = trackedItems.length;
+  const pendingCount = items.filter(
+    (it) => it.availability === "pending_supplement",
+  ).length;
   const listPct =
     trackedTotal > 0 ? Math.round((completedCount / trackedTotal) * 100) : 0;
   const listFinished = trackedTotal > 0 && completedCount >= trackedTotal;
@@ -647,17 +713,17 @@ export default function ThemesPage() {
   }, [pickerOpen]);
 
   // 领域 / 优先 / 搁置 / 删除：主题轨与移动端抽屉共用
-  function renderThemeActions(t: Theme) {
+  function renderThemeActions(theme: Theme) {
     return (
       <div className="acts">
         <select
           className="domain-select"
-          value={t.domain ?? ""}
-          onChange={(e) => patchThemeDomain(t, e.target.value)}
-          aria-label="阅读领域"
-          title="阅读领域：统计页按领域分篮子"
+          value={theme.domain ?? ""}
+          onChange={(e) => patchThemeDomain(theme, e.target.value)}
+          aria-label={t.themes.domainLabel}
+          title={t.themes.domainHint}
         >
-          <option value="">未归类</option>
+          <option value="">{t.themes.uncategorized}</option>
           {DOMAINS.map((d) => (
             <option key={d} value={d}>
               {d}
@@ -668,23 +734,28 @@ export default function ThemesPage() {
           className="btn-quiet btn-xs"
           onClick={() =>
             patchThemeStatus(
-              t,
-              t.status === "priority" ? "active" : "priority",
+              theme,
+              theme.status === "priority" ? "active" : "priority",
             )
           }
         >
-          {t.status === "priority" ? "取消优先" : "优先"}
+          {theme.status === "priority"
+            ? t.themes.unpriority
+            : t.themes.priority}
         </button>
         <button
           className="btn-quiet btn-xs"
           onClick={() =>
-            patchThemeStatus(t, t.status === "shelved" ? "active" : "shelved")
+            patchThemeStatus(
+              theme,
+              theme.status === "shelved" ? "active" : "shelved",
+            )
           }
         >
-          {t.status === "shelved" ? "恢复" : "搁置"}
+          {theme.status === "shelved" ? t.themes.restore : t.themes.shelved}
         </button>
-        <button className="btn-danger btn-xs" onClick={() => deleteTheme(t)}>
-          删除
+        <button className="btn-danger btn-xs" onClick={() => deleteTheme(theme)}>
+          {t.themes.remove}
         </button>
       </div>
     );
@@ -693,60 +764,57 @@ export default function ThemesPage() {
   return (
     <>
       <AppNav />
-      <div className="container app-main">
-        <div className="page-head">
-          <span className="kicker">Themes &amp; Lists</span>
-          <h1>主题与阅读清单</h1>
+      <div className="container app-main themes-page">
+        <div className="page-head page-head-row">
+          <div>
+            <span className="kicker">{t.themes.kicker}</span>
+            <h1>{t.themes.title}</h1>
+          </div>
+          <button
+            type="button"
+            className="btn-sm theme-new-btn"
+            onClick={() => setCreating((v) => !v)}
+            aria-expanded={creating}
+          >
+            {creating ? t.themes.newThemeClose : `＋ ${t.themes.newTheme}`}
+          </button>
         </div>
 
-        {/* 新建主题：与清单等宽的扁框入口 */}
-        <button
-          type="button"
-          className={`theme-new-bar${creating ? " open" : ""}`}
-          onClick={() => setCreating((v) => !v)}
-          aria-expanded={creating}
-        >
-          <span className="theme-new-bar-label">＋ 新建研究主题</span>
-          <span className="theme-new-bar-hint">
-            {creating ? "收起表单" : "用一句话描述你感兴趣的问题"}
-          </span>
-        </button>
-
-        {/* 创建主题 */}
+        {/* 创建主题：页面唯一主按钮展开后的表单 */}
         {creating && (
           <form className="theme-create" onSubmit={createTheme}>
             <div className="theme-create-grid">
               <label className="theme-create-field">
-                <span>主题名称</span>
+                <span>{t.themes.nameLabel}</span>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="例如：城市社会学"
+                  placeholder={t.themes.namePlaceholder}
                   required
                 />
               </label>
               <label className="theme-create-field">
-                <span>用自然语言描述你感兴趣的主题</span>
+                <span>{t.themes.descLabel}</span>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="例如：零基础入门，想理解城市如何运转、人们如何在其中生活"
+                  placeholder={t.themes.descPlaceholder}
                 />
               </label>
             </div>
-            <p className="theme-create-help">{copy.themes.createHelp}</p>
+            <p className="theme-create-help">{t.themes.createHelp}</p>
             <div className="theme-create-acts">
               <button type="submit" className="btn-sm">
-                创建主题
+                {t.themes.create}
               </button>
               <button
                 type="button"
                 className="btn-ghost btn-sm"
                 onClick={() => setCreating(false)}
               >
-                取消
+                {t.themes.cancel}
               </button>
             </div>
           </form>
@@ -769,13 +837,23 @@ export default function ThemesPage() {
               aria-expanded={pickerOpen}
             >
               <span className="ls">
-                <span className="kicker">我的主题 · {themes.length}</span>
-                <span className="name">{activeTheme?.name ?? "选择主题"}</span>
+                <span className="kicker">
+                  {t.themes.myThemes(themes.length)}
+                </span>
+                <span className="name">
+                  {activeTheme?.name ?? t.themes.myThemes(themes.length)}
+                </span>
                 {activeTheme && (
                   <span className="budget">
-                    每天 {activeTheme.daily_budget_minutes} 分钟
-                    {activeTheme.status === "priority" ? " · 优先" : ""}
-                    {activeTheme.status === "shelved" ? " · 搁置" : ""}
+                    {t.themes.railMetaShort(
+                      activeTheme.daily_budget_minutes,
+                    )}
+                    {activeTheme.status === "priority"
+                      ? ` · ${t.themes.priority}`
+                      : ""}
+                    {activeTheme.status === "shelved"
+                      ? ` · ${t.themes.shelved}`
+                      : ""}
                   </span>
                 )}
               </span>
@@ -805,7 +883,7 @@ export default function ThemesPage() {
                 className="theme-picker"
                 role="dialog"
                 aria-modal="true"
-                aria-label="选择主题"
+                aria-label={t.themes.myThemes(themes.length)}
                 onClick={() => setPickerOpen(false)}
               >
                 <div
@@ -814,50 +892,56 @@ export default function ThemesPage() {
                 >
                   <div className="theme-sheet-grab" aria-hidden="true" />
                   <div className="theme-sheet-head">
-                    <b>我的主题</b>
-                    {activeTheme ? (
+                    <b>{t.themes.myThemes(themes.length)}</b>
+                    {activeTheme && (
                       <button
                         type="button"
                         className="rail-manage"
                         onClick={() => setManageOpen((v) => !v)}
                       >
-                        {manageOpen ? "收起管理" : "管理"}
+                        {manageOpen
+                          ? t.themes.manageClose
+                          : t.themes.manage}
                       </button>
-                    ) : (
-                      <span>{themes.length} 个 · 点击切换</span>
                     )}
                   </div>
-                  {themes.map((t) => {
-                    const isActive = activeTheme?.id === t.id;
+                  {themes.map((theme) => {
+                    const isActive = activeTheme?.id === theme.id;
                     return (
                       <div
-                        key={t.id}
+                        key={theme.id}
                         className={`picker-item${isActive ? " on" : ""}${
-                          t.status === "shelved" ? " shelved" : ""
+                          theme.status === "shelved" ? " shelved" : ""
                         }`}
                       >
                         <button
                           type="button"
                           className="picker-main"
                           onClick={() => {
-                            selectTheme(t);
+                            selectTheme(theme);
                             setPickerOpen(false);
                           }}
                         >
                           <span className="txt">
                             <span className="nm">
-                              {t.name}
-                              {t.status === "priority" && (
-                                <span className="chip solid">优先</span>
+                              {theme.name}
+                              {theme.status === "priority" && (
+                                <span className="chip solid">
+                                  {t.themes.priority}
+                                </span>
                               )}
-                              {t.status === "shelved" && (
-                                <span className="chip">搁置</span>
+                              {theme.status === "shelved" && (
+                                <span className="chip">
+                                  {t.themes.shelved}
+                                </span>
                               )}
                             </span>
                             <span className="sub">
-                              每天 {t.daily_budget_minutes} 分钟
+                              {t.themes.railMetaShort(
+                                theme.daily_budget_minutes,
+                              )}
                               {isActive && trackedTotal > 0
-                                ? ` · 进度 ${listPct}%`
+                                ? ` · ${listPct}%`
                                 : ""}
                             </span>
                           </span>
@@ -865,18 +949,18 @@ export default function ThemesPage() {
                             {isActive ? "✓" : ""}
                           </span>
                         </button>
-                        {isActive && manageOpen && renderThemeActions(t)}
+                        {isActive && manageOpen && renderThemeActions(theme)}
                       </div>
                     );
                   })}
                   <div className="theme-sheet-foot">
-                    <span>点空白处或按 Esc 关闭，不改变当前主题</span>
+                    <span>{t.themes.railNewHint}</span>
                     <button
                       type="button"
                       className="btn-quiet btn-xs"
                       onClick={() => setPickerOpen(false)}
                     >
-                      关闭
+                      {t.themes.manageClose}
                     </button>
                   </div>
                 </div>
@@ -885,679 +969,910 @@ export default function ThemesPage() {
           </>
         )}
 
-        {/* 左：主题轨；右：当前清单 */}
-        {!themesLoaded && <div className="page-loading">正在读取主题…</div>}
+        {!themesLoaded && (
+          <div className="page-loading">{t.themes.loadingThemes}</div>
+        )}
         {themesLoaded && themes.length === 0 && (
           <div className="theme-empty">
-            <span className="kicker">暂无主题</span>
-            <h2>先写下一句想研究的问题</h2>
-            <p>
-              例如「零基础入门，想理解城市如何运转」。AI 会给出 5–6
-              本有序书单，之后每天按预算读一点，笔记与进度会留在这里。
-            </p>
+            <span className="kicker">{t.themes.emptyKicker}</span>
+            <h2>{t.themes.emptyTitle}</h2>
+            <p>{t.themes.emptyBody}</p>
           </div>
         )}
+
         <div
-          className="themes-grid"
+          className="themes"
           style={{
             display: !themesLoaded || themes.length === 0 ? "none" : undefined,
           }}
         >
-          <aside className="theme-rail">
+          {/* 左：主题轨 */}
+          <aside className="rail">
             <div className="rail-head">
-              <span className="kicker">我的主题 · {themes.length}</span>
+              <span className="kicker">
+                {t.themes.myThemes(themes.length)}
+              </span>
               {activeTheme && (
                 <button
                   type="button"
                   className="rail-manage"
                   onClick={() => setManageOpen((v) => !v)}
                 >
-                  {manageOpen ? "收起" : "管理"}
+                  {manageOpen ? t.themes.manageClose : t.themes.manage}
                 </button>
               )}
             </div>
-            {themes.length === 0 ? (
-              <p className="muted" style={{ margin: 0 }}>
-                {copy.themes.emptyThemes}
-              </p>
-            ) : (
-              themes.map((t) => {
-                const isActive = activeTheme?.id === t.id;
-                return (
-                  <div
-                    key={t.id}
-                    className={`rail-item${isActive ? " active" : ""}`}
-                    style={{ opacity: t.status === "shelved" ? 0.62 : 1 }}
+            {themes.map((theme) => {
+              const isActive = activeTheme?.id === theme.id;
+              const stat = isActive
+                ? { total: items.length, done: completedCount }
+                : themeStats[theme.id];
+              const railPct =
+                stat && stat.total > 0
+                  ? Math.round((stat.done / stat.total) * 100)
+                  : 0;
+              return (
+                <div
+                  key={theme.id}
+                  className={`rail-item${isActive ? " active" : ""}${
+                    theme.status === "shelved" ? " shelved" : ""
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="pick"
+                    onClick={() => selectTheme(theme)}
                   >
-                    <button className="pick" onClick={() => selectTheme(t)}>
-                      <span className="t">
-                        {t.name}
-                        {t.status === "priority" && (
-                          <span className="chip solid">优先</span>
-                        )}
-                        {t.status === "shelved" && (
-                          <span className="chip">搁置</span>
-                        )}
-                      </span>
-                      <span className="meta">
-                        每天 {t.daily_budget_minutes} 分钟
-                      </span>
-                      {isActive && trackedTotal > 0 && (
-                        <span className="rail-track">
-                          <i style={{ width: `${listPct}%` }} />
-                        </span>
+                    <span className="t">
+                      {theme.name}
+                      {theme.status === "priority" && (
+                        <span className="chip solid">{t.themes.priority}</span>
                       )}
-                    </button>
-                    {isActive && manageOpen && renderThemeActions(t)}
-                  </div>
-                );
-              })
-            )}
-            <p className="rail-help">
-              用页面上方的扁框新建主题。{copy.themes.statusHelp}
-            </p>
+                      {theme.status === "shelved" && (
+                        <span className="chip">{t.themes.shelved}</span>
+                      )}
+                    </span>
+                    <span className="meta">
+                      {stat && stat.total > 0
+                        ? t.themes.railMeta(
+                            stat.total,
+                            stat.done,
+                            theme.daily_budget_minutes,
+                          )
+                        : t.themes.railMetaShort(
+                            theme.daily_budget_minutes,
+                          )}
+                      {theme.status === "shelved"
+                        ? ` · ${t.themes.shelved}`
+                        : ""}
+                    </span>
+                    {stat && stat.total > 0 && (
+                      <span className="rail-track">
+                        <i style={{ width: `${railPct}%` }} />
+                      </span>
+                    )}
+                  </button>
+                  {isActive && manageOpen && renderThemeActions(theme)}
+                </div>
+              );
+            })}
+            <div className="rail-new">
+              <button type="button" onClick={() => setCreating(true)}>
+                ＋ {t.themes.railNew}
+              </button>
+              <span>· {t.themes.railNewHint}</span>
+            </div>
           </aside>
 
-      {/* 选中主题的清单 */}
-      {activeTheme && (
-        <section className="theme-card" ref={listSectionRef}>
-          <div className="theme-head">
-            <div style={{ minWidth: 0 }}>
-              <span className="kicker">当前清单</span>
-              <h1 style={{ marginTop: 6 }}>{activeTheme.name}</h1>
-              {activeTheme.description && (
-                <p className="sub" style={{ margin: "6px 0 0" }}>
-                  {activeTheme.description}
-                </p>
-              )}
-            </div>
-            <div className="acts">
-              <span
-                className={`chip ${listStatus === "active" ? "solid" : ""}`}
-              >
-                {listStatus === "active" ? "已确认" : "草稿"}
-              </span>
-              {listStatus !== "active" && items.length > 0 && (
-                <button className="btn-sm" onClick={confirmList}>
-                  确认清单
-                </button>
-              )}
-              <button className="btn-ghost btn-sm" onClick={refreshList}>
-                刷新
-              </button>
-            </div>
-          </div>
-
-          <div className="theme-stats">
-            <div className="stat">
-              <div className="k">清单</div>
-              <div className="v">{items.length} 本</div>
-            </div>
-            <div className="stat">
-              <div className="k">已读</div>
-              <div className="v">{completedCount}</div>
-            </div>
-            <div className="stat">
-              <div className="k">进度</div>
-              <div className="v">{listPct}%</div>
-            </div>
-            <div className="stat stat-budget">
-              <div className="k">每日预算</div>
-              <div
-                className="v"
-                style={{ display: "flex", alignItems: "center", gap: 6 }}
-              >
-                <input
-                  type="number"
-                  value={themeBudget}
-                  onChange={(e) => setThemeBudget(e.target.value)}
-                  min={5}
-                  max={180}
-                />
-                <span
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 11,
-                    fontWeight: 400,
-                    color: "#6b7280",
-                  }}
-                >
-                  分钟
-                </span>
-                <button className="btn-quiet btn-xs" onClick={saveThemeBudget}>
-                  保存
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {!listLoading && items.length === 0 && (
-            <div className="list-empty">
-              <p className="muted" style={{ margin: 0 }}>
-                {copy.themes.emptyList}
-              </p>
-              <button
-                className="btn-sm"
-                onClick={generateList}
-                disabled={generating}
-              >
-                {generating ? "推荐中…" : "让 AI 推荐书单"}
-              </button>
-            </div>
-          )}
-
-          {!listLoading &&
-            items.length > 0 &&
-            !items.some(
-              (it) =>
-                it.availability === "readable" ||
-                Boolean(it.candidate_metadata?.weread?.bookId),
-            ) && (
-            <div className="list-empty">
-              <p className="muted" style={{ margin: 0 }}>
-                {copy.themes.listNoBooks}
-              </p>
-              <Link href="/library" className="btn-sm">
-                去书库上传
-              </Link>
-            </div>
-          )}
-
-          {items.length > 0 && (
-            <div style={{ marginTop: 20 }}>
-              <div className="progress">
-                <span
-                  className={`progress-fill${listFinished ? " done" : ""}`}
-                  style={{ width: `${listPct}%` }}
-                />
-              </div>
-              <div className="progress-meta">
-                <span>阅读进度</span>
-                <span>
-                  {completedCount}/{trackedTotal} 项 · {listPct}%
-                  {items.length !== trackedTotal
-                    ? `（另有 ${items.length - trackedTotal} 项已跳过/搁置）`
-                    : ""}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {listFinished && (
-            <div className="completion-banner" style={{ marginTop: 16 }}>
-              {copy.themes.completionBanner(activeTheme.name)}
-              <span className="sub">
-                {copy.themes.completionSub(completedCount)}
-              </span>
-            </div>
-          )}
-
-          <details className="plain">
-            <summary>清单操作说明</summary>
-            <ul>
-              <li><strong>上移 / 下移</strong>：调整这本书在清单里的阅读顺序。</li>
-              <li><strong>换一本</strong>：让 AI 为这个位置重新推荐一本，会参考前后书目衔接，且不与清单里已有的书重复。</li>
-              <li><strong>锁定</strong>：固定这一项，AI 重新生成或重排时不会移动、替换它。</li>
-              <li><strong>搁置</strong>：先放到一边，稍后再读（之后可「恢复」）。</li>
-              <li><strong>待补充</strong>：这本书还不在你的书库，上传 EPUB 后点「刷新」即可转为可读。</li>
-              <li><strong>删除</strong>：把这一项从清单里移除。</li>
-            </ul>
-          </details>
-
-          {/* 一句话重新生成 */}
-          {items.length > 0 && (
-            <details className="plain">
-              <summary>用一句话调整清单</summary>
-              <div style={{ marginTop: 14 }}>
-                <div
-                  style={{
-                    display: "flex",
-                    flexWrap: "wrap",
-                    gap: 8,
-                    alignItems: "center",
-                  }}
-                >
-                  <input
-                    type="text"
-                    value={regenHint}
-                    onChange={(e) => setRegenHint(e.target.value)}
-                    placeholder="一句话提示，如：更偏理论 / 降低难度 / 多推荐实践类"
-                    style={{ flex: "1 1 240px", minWidth: 0, margin: 0 }}
-                  />
+          {/* 右：当前清单 */}
+          {activeTheme && (
+            <section className="sheet" ref={listSectionRef}>
+              <div className="sheet-head">
+                <div style={{ minWidth: 0 }}>
+                  <span className="kicker">{t.themes.currentList}</span>
+                  <h2>{activeTheme.name}</h2>
+                  {activeTheme.description && (
+                    <p className="sub">{activeTheme.description}</p>
+                  )}
+                </div>
+                <div className="sheet-acts">
+                  <span
+                    className={`chip ${
+                      listStatus === "active" ? "solid" : ""
+                    }`}
+                  >
+                    {listStatus === "active"
+                      ? t.themes.confirmed
+                      : t.themes.draft}
+                  </span>
+                  {listStatus !== "active" && items.length > 0 && (
+                    <button className="btn-sm" onClick={confirmList}>
+                      {t.themes.confirmList}
+                    </button>
+                  )}
+                  {items.length > 0 && (
+                    <button
+                      className="btn-line btn-sm"
+                      onClick={() => setAdjustOpen((v) => !v)}
+                      aria-expanded={adjustOpen}
+                    >
+                      {t.themes.adjust}
+                    </button>
+                  )}
                   <button
                     className="btn-sm"
-                    onClick={regenerate}
-                    disabled={regenning}
+                    onClick={generateTodayPack}
+                    disabled={packBusy}
                   >
-                    {regenning ? "生成中…" : "重新生成"}
+                    {packBusy
+                      ? t.themes.generatingToday
+                      : t.themes.generateToday}
                   </button>
                 </div>
+              </div>
 
-                {regenMessage && (
-                  <p className="muted" style={{ margin: "8px 0 0" }}>
-                    {regenMessage}
-                  </p>
-                )}
-
-                {regenPreview && (
-                  <div
-                    style={{
-                      marginTop: 12,
-                      borderTop: "1px solid #e5e7eb",
-                      paddingTop: 12,
-                    }}
-                  >
-                    <p className="muted" style={{ margin: "0 0 6px" }}>
-                      {copy.themes.regenPreview(
-                        items.length - regenPreview.removed.length,
-                        regenPreview.removed.length,
-                      )}
-                    </p>
-                    <div
-                      className="muted"
-                      style={{ fontSize: 12, lineHeight: 1.8 }}
-                    >
-                      {regenPreview.proposed.map((p, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            padding: "6px 0",
-                            borderBottom: "1px solid #f0f0f0",
-                          }}
-                        >
-                          《{p.title}》{p.author ? ` · ${p.author}` : ""}
-                          {p.availability === "readable" ? "" : "（待补充）"}
-                          —— {p.reason}
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                      <button className="btn-sm" onClick={applyRegenerate}>
-                        应用
-                      </button>
-                      <button
-                        className="btn-ghost btn-sm"
-                        onClick={cancelRegenerate}
-                      >
-                        放弃
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {undoInfo && !regenPreview && (
-                  <div style={{ marginTop: 10 }}>
+              {/* 一句话调整清单 */}
+              {adjustOpen && items.length > 0 && (
+                <div className="sheet-adjust">
+                  <div className="sheet-adjust-row">
+                    <input
+                      type="text"
+                      value={regenHint}
+                      onChange={(e) => setRegenHint(e.target.value)}
+                      placeholder={t.themes.adjustPlaceholder}
+                    />
                     <button
-                      className="btn-ghost btn-sm"
-                      onClick={undoRegenerate}
+                      className="btn-sm"
+                      onClick={regenerate}
+                      disabled={regenning}
                     >
-                      撤销上次重新生成
+                      {regenning
+                        ? t.themes.regenerating
+                        : t.themes.regenerate}
                     </button>
                   </div>
-                )}
-              </div>
-            </details>
-          )}
 
-          {items.length > 0 && (
-            <div className="view-bar">
-              <span className="kicker">
-                {view === "path" ? "Reading Path" : "Reading List"}
-              </span>
-              {items.some(
-                (it) =>
-                  it.availability === "pending_supplement" &&
-                  !it.candidate_metadata?.weread,
-              ) && (
-                <button
-                  className="btn-ghost btn-xs"
-                  onClick={() => enrichWeread()}
-                  disabled={wereadBusy}
-                >
-                  {wereadBusy ? "查询中…" : "查微信读书"}
-                </button>
-              )}
-              {hasMissingPoints && (
-                <button
-                  className="btn-ghost btn-xs"
-                  onClick={() => generateKeyPoints()}
-                  disabled={genPoints}
-                >
-                  {genPoints ? "生成中…" : "生成知识点"}
-                </button>
-              )}
-              <div className="view-switch" role="group" aria-label="清单视图">
-                <button
-                  type="button"
-                  className={view === "path" ? "on" : ""}
-                  aria-pressed={view === "path"}
-                  onClick={() => setView("path")}
-                >
-                  路径
-                </button>
-                <button
-                  type="button"
-                  className={view === "list" ? "on" : ""}
-                  aria-pressed={view === "list"}
-                  onClick={() => setView("list")}
-                >
-                  列表
-                </button>
-              </div>
-            </div>
-          )}
+                  {regenMessage && (
+                    <p className="muted sheet-adjust-msg">{regenMessage}</p>
+                  )}
 
-          {/* 路径视图：书脊串起清单；草稿看推荐理由，确认后看知识点 */}
-          {items.length > 0 && view === "path" && (
-            <div className="path">
-              {items.map((it, idx) => {
-                const isPending = it.availability === "pending_supplement";
-                const title =
-                  it.documents?.title ??
-                  it.candidate_metadata?.title ??
-                  "未知书名";
-                const author =
-                  it.documents?.author ?? it.candidate_metadata?.author ?? "";
-                const weread = it.candidate_metadata?.weread;
-                const keyPoints = it.candidate_metadata?.key_points ?? [];
-                const progress = it.document_id
-                  ? bookProgress[it.document_id]
-                  : null;
-                const pct = progress
-                  ? Math.round((progress.done / progress.total) * 100)
-                  : 0;
-                const state =
-                  it.status === "completed"
-                    ? "done"
-                    : it.status === "skipped" || it.status === "shelved"
-                      ? "muted"
-                      : it.id === nowItemId
-                        ? "now"
-                        : "";
-                return (
-                  <div
-                    className={`path-node${state ? ` ${state}` : ""}${
-                      isPending ? " pending" : ""
-                    }`}
-                    key={it.id}
-                  >
-                    <div className="path-head">
-                      <span className="path-idx">
-                        {String(idx + 1).padStart(2, "0")}
-                      </span>
-                      <h3 className="path-title">
-                        {it.document_id && !isPending ? (
-                          <Link href={`/books/${it.document_id}`}>{title}</Link>
-                        ) : (
-                          title
-                        )}
-                      </h3>
-                    </div>
-                    <p className="path-meta">
-                      {[
-                        author || (isPending ? "书库中暂无此书" : ""),
-                        itemStateLabel(it),
-                        it.locked ? "已锁定" : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                      {!isPending && it.document_id && (
-                        <span className="chip ok">已上传</span>
-                      )}
-                    </p>
-                    <div className="path-chips">
-                      {keyPoints.length > 0 ? (
-                        keyPoints.map((p) => (
-                          <span className="chip" key={p}>
-                            {p}
-                          </span>
-                        ))
-                      ) : (
-                        <span className="chip dash">知识点待生成</span>
-                      )}
-                    </div>
-                    {progress && progress.total > 0 && (
-                      <div className="path-prog">
-                        <span className="track">
-                          <span className="bar" style={{ width: `${pct}%` }} />
-                        </span>
-                        <span className="label">
-                          第 {progress.current}/{progress.total} 章 · {pct}%
-                        </span>
-                      </div>
-                    )}
-                    <div className="path-actions">
-                      {isPending && weread ? (
-                        <>
-                          <a
-                            className="link-btn"
-                            href={weread.readerLink}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            去微信读书阅读 →
-                          </a>
-                          <Link className="link-btn" href="/library">
-                            去上传 →
-                          </Link>
-                        </>
-                      ) : isPending ? (
-                        <Link className="link-btn" href="/library">
-                          去上传 →
-                        </Link>
-                      ) : it.document_id ? (
-                        <Link
-                          className="link-btn"
-                          href={`/books/${it.document_id}`}
-                        >
-                          {it.status === "completed"
-                            ? "再看一遍"
-                            : it.status === "in_progress"
-                              ? "继续阅读"
-                              : "开始阅读"}{" "}
-                          →
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {items.length > 0 && view === "list" && (
-            <div className="list">
-              {items.map((it, idx) => {
-                const isPending = it.availability === "pending_supplement";
-                const title =
-                  it.documents?.title ??
-                  it.candidate_metadata?.title ??
-                  "未知书名";
-                const author =
-                  it.documents?.author ?? it.candidate_metadata?.author ?? "";
-                return (
-                  <div
-                    className={`list-item${
-                      it.status === "skipped" || it.status === "shelved"
-                        ? " muted"
-                        : ""
-                    }`}
-                    key={it.id}
-                  >
-                    <div className="idx">
-                      {String(idx + 1).padStart(2, "0")}
-                    </div>
-                    <div className="mid">
-                      <p className="t">
-                        {it.document_id && !isPending ? (
-                          <Link href={`/books/${it.document_id}`}>{title}</Link>
-                        ) : (
-                          title
+                  {regenPreview && (
+                    <div className="sheet-adjust-preview">
+                      <p className="muted">
+                        {t.themes.regenPreview(
+                          items.length - regenPreview.removed.length,
+                          regenPreview.removed.length,
                         )}
                       </p>
-                      {(author || isPending) && (
-                        <p className="a">{author || "书库中暂无此书"}</p>
-                      )}
-                      {it.reason && (
-                        <p
-                          className={`r${expandedId === it.id ? "" : " clamp"}`}
-                          onClick={() =>
-                            setExpandedId(
-                              expandedId === it.id ? null : it.id,
-                            )
-                          }
-                        >
-                          {it.reason}
-                        </p>
-                      )}
-                      <div className="manage">
-                        <button
-                          className="btn-ghost btn-xs"
-                          onClick={() => moveItem(it.id, "up")}
-                          disabled={idx === 0}
-                        >
-                          ↑ 上移
+                      <div className="preview-list">
+                        {regenPreview.proposed.map((p, i) => (
+                          <div key={i}>
+                            《{p.title}》{p.author ? ` · ${p.author}` : ""}
+                            {p.availability === "readable"
+                              ? ""
+                              : `（${t.themes.statePending}）`}
+                            —— {p.reason}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="sheet-adjust-acts">
+                        <button className="btn-sm" onClick={applyRegenerate}>
+                          {t.themes.apply}
                         </button>
                         <button
-                          className="btn-ghost btn-xs"
-                          onClick={() => moveItem(it.id, "down")}
-                          disabled={idx === items.length - 1}
+                          className="btn-ghost btn-sm"
+                          onClick={cancelRegenerate}
                         >
-                          ↓ 下移
-                        </button>
-                        <button
-                          className="btn-ghost btn-xs"
-                          onClick={() =>
-                            setConfirmAction({ kind: "replace", itemId: it.id })
-                          }
-                          disabled={replacingId !== null}
-                          title="让 AI 为这个位置重新推荐一本，与前后书目衔接"
-                        >
-                          {replacingId === it.id ? "换书中…" : "换一本"}
-                        </button>
-                        <button
-                          className="btn-ghost btn-xs"
-                          onClick={() => toggleLock(it.id)}
-                          title={
-                            it.locked
-                              ? "解除锁定"
-                              : "锁定：AI 重排/替换时不动这一项"
-                          }
-                        >
-                          {it.locked ? "解锁" : "锁定"}
-                        </button>
-                        {it.status === "skipped" ||
-                        it.status === "shelved" ? (
-                          <button
-                            className="btn-ghost btn-xs"
-                            onClick={() => setItemStatus(it.id, "unread")}
-                          >
-                            恢复
-                          </button>
-                        ) : (
-                          <button
-                            className="btn-ghost btn-xs"
-                            onClick={() => setItemStatus(it.id, "shelved")}
-                            title="搁置：先放一边，稍后再读（可恢复）"
-                          >
-                            搁置
-                          </button>
-                        )}
-                        <button
-                          className="btn-danger btn-xs"
-                          onClick={() =>
-                            setConfirmAction({ kind: "delete", itemId: it.id })
-                          }
-                        >
-                          删除
+                          {t.themes.discard}
                         </button>
                       </div>
-                      {confirmAction?.itemId === it.id && (
-                        <div className="confirm-inline" role="alertdialog">
-                          <span className="confirm-inline-text">
-                            {confirmAction.kind === "replace"
-                              ? `换一本会把《${title}》换成 AI 重新推荐的一本。`
-                              : `确定从清单中删除《${title}》吗？删除后不可在这里恢复。`}
+                    </div>
+                  )}
+
+                  {undoInfo && !regenPreview && (
+                    <button
+                      className="btn-ghost btn-sm sheet-adjust-undo"
+                      onClick={undoRegenerate}
+                    >
+                      {t.themes.undoRegen}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <div className="sheet-stats">
+                <div className="cell">
+                  <div className="k">{t.themes.statList}</div>
+                  <div className="v">
+                    {t.themes.bookCount(items.length)}
+                  </div>
+                </div>
+                <div className="cell">
+                  <div className="k">{t.themes.statRead}</div>
+                  <div className="v">
+                    {t.themes.bookCount(completedCount)}
+                  </div>
+                </div>
+                <div className="cell">
+                  <div className="k">{t.themes.statPending}</div>
+                  <div className="v">
+                    {t.themes.bookCount(pendingCount)}
+                  </div>
+                </div>
+                <div className="cell">
+                  <div className="k">{t.themes.statBudget}</div>
+                  <div className="v budget">
+                    <input
+                      type="number"
+                      value={themeBudget}
+                      onChange={(e) => setThemeBudget(e.target.value)}
+                      min={5}
+                      max={180}
+                      aria-label={t.themes.statBudget}
+                    />
+                    <small>{t.themes.unitMinutes}</small>
+                    <button
+                      className="btn-quiet btn-xs"
+                      onClick={saveThemeBudget}
+                    >
+                      {t.themes.save}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {items.length > 0 && (
+                <div className="sheet-progress">
+                  <div className="progress">
+                    <span
+                      className={`progress-fill${listFinished ? " done" : ""}`}
+                      style={{ width: `${listPct}%` }}
+                    />
+                  </div>
+                  <div className="progress-meta">
+                    <span>{t.themes.readingProgress}</span>
+                    <span>
+                      {t.themes.progressMeta(
+                        completedCount,
+                        trackedTotal,
+                        listPct,
+                      )}
+                      {items.length !== trackedTotal
+                        ? ` · ${t.themes.progressExtra(
+                            items.length - trackedTotal,
+                          )}`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {listFinished && (
+                <div className="completion-banner">
+                  {t.themes.completionBanner(activeTheme.name)}
+                  <span className="sub">
+                    {t.themes.completionSub(completedCount)}
+                  </span>
+                </div>
+              )}
+
+              {!listLoading && items.length === 0 && (
+                <div className="list-empty">
+                  <p className="muted">{t.themes.emptyList}</p>
+                  <button
+                    className="btn-sm"
+                    onClick={generateList}
+                    disabled={generating}
+                  >
+                    {generating ? t.themes.recommending : t.themes.recommend}
+                  </button>
+                </div>
+              )}
+
+              {!listLoading &&
+                items.length > 0 &&
+                !items.some(
+                  (it) =>
+                    it.availability === "readable" ||
+                    Boolean(it.candidate_metadata?.weread?.bookId),
+                ) && (
+                  <div className="list-empty">
+                    <p className="muted">{t.themes.listNoBooks}</p>
+                    <div className="list-empty-acts">
+                      <Link href="/library" className="btn-sm">
+                        {t.themes.goUpload}
+                      </Link>
+                      <button className="btn-ghost btn-sm" onClick={refreshList}>
+                        {t.themes.refresh}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {items.length > 0 && (
+                <div className="toolbar">
+                  <span className="hint">
+                    {view === "path"
+                      ? t.themes.readingPath
+                      : t.themes.readingList}
+                  </span>
+                  <button
+                    className="btn-quiet btn-sm"
+                    onClick={refreshList}
+                  >
+                    {t.themes.refresh}
+                  </button>
+                  {items.some(
+                    (it) =>
+                      it.availability === "pending_supplement" &&
+                      !it.candidate_metadata?.weread,
+                  ) && (
+                    <button
+                      className="btn-quiet btn-sm"
+                      onClick={() => enrichWeread()}
+                      disabled={wereadBusy}
+                    >
+                      {wereadBusy
+                        ? t.themes.checkingWeread
+                        : t.themes.checkWeread}
+                    </button>
+                  )}
+                  {hasMissingPoints && (
+                    <button
+                      className="btn-quiet btn-sm"
+                      onClick={() => generateKeyPoints()}
+                      disabled={genPoints}
+                    >
+                      {genPoints
+                        ? t.themes.genPointsBusy
+                        : t.themes.genPoints}
+                    </button>
+                  )}
+                  <span className="grow" />
+                  <div className="seg" role="group" aria-label={t.themes.viewLabel}>
+                    <button
+                      type="button"
+                      className={view === "path" ? "on" : ""}
+                      aria-pressed={view === "path"}
+                      onClick={() => setView("path")}
+                    >
+                      {t.themes.path}
+                    </button>
+                    <button
+                      type="button"
+                      className={view === "list" ? "on" : ""}
+                      aria-pressed={view === "list"}
+                      onClick={() => setView("list")}
+                    >
+                      {t.themes.list}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* 路径视图：编号、节点、知识点、进度在一列里读完 */}
+              {items.length > 0 && view === "path" && (
+                <div className="path">
+                  {items.map((it, idx) => {
+                    const isPending =
+                      it.availability === "pending_supplement";
+                    const title =
+                      it.documents?.title ??
+                      it.candidate_metadata?.title ??
+                      t.themes.unknownBook;
+                    const author =
+                      it.documents?.author ??
+                      it.candidate_metadata?.author ??
+                      "";
+                    const weread = it.candidate_metadata?.weread;
+                    const keyPoints = it.candidate_metadata?.key_points ?? [];
+                    const progress = it.document_id
+                      ? bookProgress[it.document_id]
+                      : null;
+                    const pct = progress
+                      ? Math.round((progress.done / progress.total) * 100)
+                      : 0;
+                    const state =
+                      it.status === "completed"
+                        ? "done"
+                        : it.status === "skipped" || it.status === "shelved"
+                          ? "muted"
+                          : it.id === nowItemId
+                            ? "now"
+                            : "";
+                    const stateChip =
+                      it.status === "completed"
+                        ? t.themes.stateDone
+                        : it.status === "skipped"
+                          ? t.themes.stateSkipped
+                          : it.status === "shelved"
+                            ? t.themes.stateShelved
+                            : isPending
+                              ? t.themes.statePending
+                              : it.id === nowItemId
+                                ? t.themes.stateReading
+                                : "";
+                    return (
+                      <div
+                        className={`node${state ? ` ${state}` : ""}${
+                          isPending ? " pending" : ""
+                        }`}
+                        key={it.id}
+                      >
+                        <span className="dot" aria-hidden="true" />
+                        <div className="node-head">
+                          <span className="node-idx">
+                            {String(idx + 1).padStart(2, "0")}
                           </span>
-                          <span className="confirm-inline-actions">
-                            <button
-                              className="btn-ghost btn-xs"
-                              onClick={() => setConfirmAction(null)}
+                          <h3 className="node-title">
+                            {it.document_id && !isPending ? (
+                              <Link href={`/books/${it.document_id}`}>
+                                {title}
+                              </Link>
+                            ) : (
+                              title
+                            )}
+                          </h3>
+                          {stateChip && (
+                            <span
+                              className={`chip${
+                                it.id === nowItemId ? " solid" : ""
+                              }`}
+                              style={{ marginLeft: "auto" }}
                             >
-                              取消
-                            </button>
-                            <button
+                              {stateChip}
+                            </span>
+                          )}
+                        </div>
+                        <p className="node-meta">
+                          {[
+                            author ||
+                              (isPending ? t.themes.notInLibrary : ""),
+                            stateChip ? "" : itemStateLabel(it),
+                            it.locked ? t.themes.locked : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                          {!isPending && it.document_id && (
+                            <span className="chip ok">{t.themes.uploaded}</span>
+                          )}
+                        </p>
+                        <div className="node-chips">
+                          {keyPoints.length > 0 ? (
+                            keyPoints.map((p) => (
+                              <span className="chip" key={p}>
+                                {p}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="chip dash">
+                              {t.themes.pointsPending}
+                            </span>
+                          )}
+                        </div>
+                        {progress && progress.total > 0 && (
+                          <div className="node-prog">
+                            <span className="track">
+                              <span
+                                className="bar"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </span>
+                            <span className="label">
+                              {t.themes.chapterProgress(
+                                progress.current,
+                                progress.total,
+                                pct,
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        <div className="node-foot">
+                          {isPending && weread ? (
+                            <a
+                              className="link"
+                              href={weread.readerLink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {t.themes.readOnWeread}
+                            </a>
+                          ) : isPending ? (
+                            <Link className="link quiet" href="/library">
+                              {t.themes.goUpload}
+                            </Link>
+                          ) : it.document_id ? (
+                            <Link
                               className={
-                                confirmAction.kind === "delete"
-                                  ? "btn-danger btn-xs"
-                                  : "btn-ghost btn-xs"
+                                it.status === "in_progress" ? "link" : "link quiet"
                               }
-                              onClick={() => {
-                                const action = confirmAction;
-                                setConfirmAction(null);
-                                if (action.kind === "replace")
-                                  replaceItem(action.itemId);
-                                else deleteItem(action.itemId);
-                              }}
+                              href={`/books/${it.document_id}`}
                             >
-                              {confirmAction.kind === "replace"
-                                ? "确认换书"
-                                : "确认删除"}
+                              {it.status === "completed"
+                                ? t.themes.reread
+                                : it.status === "in_progress"
+                                  ? t.themes.continueReading
+                                  : t.themes.startReading}{" "}
+                              →
+                            </Link>
+                          ) : null}
+                          <span className="act">
+                            <button
+                              className="btn-quiet btn-sm"
+                              onClick={() =>
+                                setManageItemId(
+                                  manageItemId === it.id ? null : it.id,
+                                )
+                              }
+                              aria-expanded={manageItemId === it.id}
+                            >
+                              {manageItemId === it.id
+                                ? t.themes.manageClose
+                                : t.themes.manage}
                             </button>
                           </span>
                         </div>
-                      )}
-                    </div>
-                    <div className="side">
-                      {isPending && it.candidate_metadata?.weread ? (
-                        <a
-                          className="chip"
-                          href={it.candidate_metadata.weread.readerLink}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{ textDecoration: "none" }}
-                        >
-                          {it.candidate_metadata.weread.progress
-                            ? `微信读书 ${it.candidate_metadata.weread.progress}%`
-                            : "微信读书可读"}
-                        </a>
-                      ) : (
-                        isPending && (
-                          <span className="chip" title="请从书库界面上传书籍">
-                            待补充
-                          </span>
-                        )
-                      )}
-                      {it.locked && <span className="chip ghost">已锁定</span>}
-                      {it.status === "completed" && (
-                        <span className="chip solid">已读完</span>
-                      )}
-                      {it.status === "skipped" && (
-                        <span className="chip">已跳过</span>
-                      )}
-                      {it.status === "shelved" && (
-                        <span className="chip">已搁置</span>
-                      )}
-                      {isPending ? (
-                        <Link className="link-btn" href="/library">
-                          去上传 →
-                        </Link>
-                      ) : it.document_id ? (
-                        <Link
-                          className="link-btn"
-                          href={`/books/${it.document_id}`}
-                        >
-                          开始阅读 →
-                        </Link>
-                      ) : null}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+
+                        {manageItemId === it.id && (
+                          <div className="manage-row">
+                            <span className="lbl">{t.themes.manage}</span>
+                            <button
+                              className="btn-line btn-xs"
+                              onClick={() => moveItem(it.id, "up")}
+                              disabled={idx === 0}
+                            >
+                              {t.themes.moveUp}
+                            </button>
+                            <button
+                              className="btn-line btn-xs"
+                              onClick={() => moveItem(it.id, "down")}
+                              disabled={idx === items.length - 1}
+                            >
+                              {t.themes.moveDown}
+                            </button>
+                            <button
+                              className="btn-line btn-xs"
+                              onClick={() =>
+                                setConfirmAction({
+                                  kind: "replace",
+                                  itemId: it.id,
+                                })
+                              }
+                              disabled={replacingId !== null}
+                            >
+                              {replacingId === it.id
+                                ? t.themes.replacing
+                                : t.themes.replace}
+                            </button>
+                            <button
+                              className="btn-line btn-xs"
+                              onClick={() => toggleLock(it.id)}
+                            >
+                              {it.locked ? t.themes.unlock : t.themes.lock}
+                            </button>
+                            {it.status === "skipped" ||
+                            it.status === "shelved" ? (
+                              <button
+                                className="btn-quiet btn-xs"
+                                onClick={() => setItemStatus(it.id, "unread")}
+                              >
+                                {t.themes.restore}
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-quiet btn-xs"
+                                onClick={() => setItemStatus(it.id, "skipped")}
+                              >
+                                {t.themes.skip}
+                              </button>
+                            )}
+                            <button
+                              className="btn-danger btn-xs"
+                              onClick={() =>
+                                setConfirmAction({
+                                  kind: "delete",
+                                  itemId: it.id,
+                                })
+                              }
+                            >
+                              {t.themes.remove}
+                            </button>
+                          </div>
+                        )}
+
+                        {confirmAction?.itemId === it.id && (
+                          <div className="confirm-inline" role="alertdialog">
+                            <span className="confirm-inline-text">
+                              {confirmAction.kind === "replace"
+                                ? t.themes.confirmReplace(title)
+                                : t.themes.confirmDelete(title)}
+                            </span>
+                            <span className="confirm-inline-actions">
+                              <button
+                                className="btn-ghost btn-xs"
+                                onClick={() => setConfirmAction(null)}
+                              >
+                                {t.themes.cancel}
+                              </button>
+                              <button
+                                className={
+                                  confirmAction.kind === "delete"
+                                    ? "btn-danger btn-xs"
+                                    : "btn-ghost btn-xs"
+                                }
+                                onClick={() => {
+                                  const action = confirmAction;
+                                  setConfirmAction(null);
+                                  if (action.kind === "replace")
+                                    replaceItem(action.itemId);
+                                  else deleteItem(action.itemId);
+                                }}
+                              >
+                                {confirmAction.kind === "replace"
+                                  ? t.themes.confirmReplaceOk
+                                  : t.themes.confirmDeleteOk}
+                              </button>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {items.length > 0 && view === "list" && (
+                <div className="list">
+                  {items.map((it, idx) => {
+                    const isPending =
+                      it.availability === "pending_supplement";
+                    const title =
+                      it.documents?.title ??
+                      it.candidate_metadata?.title ??
+                      t.themes.unknownBook;
+                    const author =
+                      it.documents?.author ??
+                      it.candidate_metadata?.author ??
+                      "";
+                    return (
+                      <div
+                        className={`list-item${
+                          it.status === "skipped" || it.status === "shelved"
+                            ? " muted"
+                            : ""
+                        }`}
+                        key={it.id}
+                      >
+                        <div className="idx">
+                          {String(idx + 1).padStart(2, "0")}
+                        </div>
+                        <div className="mid">
+                          <p className="t">
+                            {it.document_id && !isPending ? (
+                              <Link href={`/books/${it.document_id}`}>
+                                {title}
+                              </Link>
+                            ) : (
+                              title
+                            )}
+                          </p>
+                          {(author || isPending) && (
+                            <p className="a">
+                              {author || t.themes.notInLibrary}
+                            </p>
+                          )}
+                          {it.reason && (
+                            <p
+                              className={`r${
+                                expandedId === it.id ? "" : " clamp"
+                              }`}
+                              onClick={() =>
+                                setExpandedId(
+                                  expandedId === it.id ? null : it.id,
+                                )
+                              }
+                            >
+                              {it.reason}
+                            </p>
+                          )}
+                          {manageItemId === it.id && (
+                          <div className="manage">
+                            <button
+                              className="btn-ghost btn-xs"
+                              onClick={() => moveItem(it.id, "up")}
+                              disabled={idx === 0}
+                            >
+                              {t.themes.moveUp}
+                            </button>
+                            <button
+                              className="btn-ghost btn-xs"
+                              onClick={() => moveItem(it.id, "down")}
+                              disabled={idx === items.length - 1}
+                            >
+                              {t.themes.moveDown}
+                            </button>
+                            <button
+                              className="btn-ghost btn-xs"
+                              onClick={() =>
+                                setConfirmAction({
+                                  kind: "replace",
+                                  itemId: it.id,
+                                })
+                              }
+                              disabled={replacingId !== null}
+                            >
+                              {replacingId === it.id
+                                ? t.themes.replacing
+                                : t.themes.replace}
+                            </button>
+                            <button
+                              className="btn-ghost btn-xs"
+                              onClick={() => toggleLock(it.id)}
+                            >
+                              {it.locked ? t.themes.unlock : t.themes.lock}
+                            </button>
+                            {it.status === "skipped" ||
+                            it.status === "shelved" ? (
+                              <button
+                                className="btn-ghost btn-xs"
+                                onClick={() => setItemStatus(it.id, "unread")}
+                              >
+                                {t.themes.restore}
+                              </button>
+                            ) : (
+                              <button
+                                className="btn-ghost btn-xs"
+                                onClick={() => setItemStatus(it.id, "shelved")}
+                              >
+                                {t.themes.shelved}
+                              </button>
+                            )}
+                            <button
+                              className="btn-danger btn-xs"
+                              onClick={() =>
+                                setConfirmAction({
+                                  kind: "delete",
+                                  itemId: it.id,
+                                })
+                              }
+                            >
+                              {t.themes.remove}
+                            </button>
+                          </div>
+                          )}
+                          {confirmAction?.itemId === it.id && (
+                            <div className="confirm-inline" role="alertdialog">
+                              <span className="confirm-inline-text">
+                                {confirmAction.kind === "replace"
+                                  ? t.themes.confirmReplace(title)
+                                  : t.themes.confirmDelete(title)}
+                              </span>
+                              <span className="confirm-inline-actions">
+                                <button
+                                  className="btn-ghost btn-xs"
+                                  onClick={() => setConfirmAction(null)}
+                                >
+                                  {t.themes.cancel}
+                                </button>
+                                <button
+                                  className={
+                                    confirmAction.kind === "delete"
+                                      ? "btn-danger btn-xs"
+                                      : "btn-ghost btn-xs"
+                                  }
+                                  onClick={() => {
+                                    const action = confirmAction;
+                                    setConfirmAction(null);
+                                    if (action.kind === "replace")
+                                      replaceItem(action.itemId);
+                                    else deleteItem(action.itemId);
+                                  }}
+                                >
+                                  {confirmAction.kind === "replace"
+                                    ? t.themes.confirmReplaceOk
+                                    : t.themes.confirmDeleteOk}
+                                </button>
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="side">
+                          {isPending && it.candidate_metadata?.weread ? (
+                            <a
+                              className="chip"
+                              href={it.candidate_metadata.weread.readerLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={{ textDecoration: "none" }}
+                            >
+                              {it.candidate_metadata.weread.progress
+                                ? `${t.themes.wereadChip} ${it.candidate_metadata.weread.progress}%`
+                                : t.themes.wereadChip}
+                            </a>
+                          ) : (
+                            isPending && (
+                              <span className="chip">
+                                {t.themes.statePending}
+                              </span>
+                            )
+                          )}
+                          {it.locked && (
+                            <span className="chip ghost">{t.themes.locked}</span>
+                          )}
+                          {it.status === "completed" && (
+                            <span className="chip solid">
+                              {t.themes.stateDone}
+                            </span>
+                          )}
+                          {it.status === "skipped" && (
+                            <span className="chip">{t.themes.stateSkipped}</span>
+                          )}
+                          {it.status === "shelved" && (
+                            <span className="chip">
+                              {t.themes.stateShelved}
+                            </span>
+                          )}
+                          {isPending && it.candidate_metadata?.weread ? (
+                            <a
+                              className="link-btn"
+                              href={it.candidate_metadata.weread.readerLink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {t.themes.readOnWeread}
+                            </a>
+                          ) : isPending ? (
+                            <Link className="link-btn" href="/library">
+                              {t.themes.goUpload}
+                            </Link>
+                          ) : it.document_id ? (
+                            <Link
+                              className="link-btn"
+                              href={`/books/${it.document_id}`}
+                            >
+                              {it.status === "completed"
+                                ? t.themes.reread
+                                : it.status === "in_progress"
+                                  ? t.themes.continueReading
+                                  : t.themes.startReading}{" "}
+                              →
+                            </Link>
+                          ) : null}
+                          <button
+                            className="btn-quiet btn-xs list-manage-btn"
+                            onClick={() =>
+                              setManageItemId(
+                                manageItemId === it.id ? null : it.id,
+                              )
+                            }
+                            aria-expanded={manageItemId === it.id}
+                          >
+                            {manageItemId === it.id
+                              ? t.themes.manageClose
+                              : t.themes.manage}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {items.length > 0 && (
+                <details className="plain list-help">
+                  <summary>{t.themes.helpSummary}</summary>
+                  <ul>
+                    <li>{t.themes.helpMove}</li>
+                    <li>{t.themes.helpReplace}</li>
+                    <li>{t.themes.helpLock}</li>
+                    <li>{t.themes.helpShelve}</li>
+                    <li>{t.themes.helpPending}</li>
+                    <li>{t.themes.helpDelete}</li>
+                  </ul>
+                </details>
+              )}
+            </section>
           )}
-        </section>
-      )}
         </div>
       </div>
     </>

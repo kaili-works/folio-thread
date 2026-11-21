@@ -16,6 +16,190 @@ export const en: Dict = {
     todayShort: "Today",
     switchLanguage: "Switch language",
   },
+  themes: {
+    kicker: "Themes & Lists",
+    title: "Themes & reading lists",
+    newTheme: "New research theme",
+    newThemeClose: "Close form",
+    newThemeHint: "Describe what you want to study in one sentence",
+    nameLabel: "Theme name",
+    namePlaceholder: "e.g. Urban sociology",
+    descLabel: "Describe the theme in your own words",
+    descPlaceholder:
+      "e.g. A beginner's path into how cities work and how people live in them",
+    createHelp:
+      "Describe your reading theme in plain language. After creating it, hit “Let AI recommend books” and the model will pick 5–6 titles ordered from easy to hard. You can adjust or regenerate later; once the list is confirmed, upload the EPUBs to your library. If an EPUB isn't available but WeRead has the book, today's pack will link to WeRead directly.",
+    create: "Create theme",
+    cancel: "Cancel",
+    loadingThemes: "Loading themes…",
+    emptyKicker: "No themes yet",
+    emptyTitle: "Start with one question you want to study",
+    emptyBody:
+      "For example, “A beginner's guide to how cities work.” AI will suggest 5–6 books in order; read a little each day within your budget, and your notes and progress stay here.",
+    myThemes: (n: number) => `My themes · ${n}`,
+    manage: "Manage",
+    manageClose: "Done",
+    railMeta: (books: number, read: number, minutes: number) =>
+      `${books} ${books === 1 ? "book" : "books"} · ${read} read · ${minutes} min/day`,
+    railMetaShort: (minutes: number) => `${minutes} min/day`,
+    priority: "Priority",
+    unpriority: "Remove priority",
+    domainLabel: "Reading domain",
+    domainHint: "Reading domain: groups themes on the stats page",
+    shelved: "Shelved",
+    railNew: "New theme",
+    railNewHint: "One sentence is enough",
+    currentList: "Current List",
+    confirmed: "Confirmed",
+    draft: "Draft",
+    confirmList: "Confirm list",
+    adjust: "Adjust in a sentence",
+    generateToday: "Generate today's pack",
+    generatingToday: "Generating…",
+    packFailed: (error: string | number) =>
+      `Couldn't generate today's pack: ${error}`,
+    statList: "List",
+    statRead: "Finished",
+    statPending: "To add",
+    statBudget: "Daily budget",
+    bookCount: (n: number) => `${n} ${n === 1 ? "book" : "books"}`,
+    unitMinutes: "min",
+    save: "Save",
+    readingProgress: "Reading progress",
+    progressMeta: (done: number, total: number, pct: number) =>
+      `${done} / ${total} items · ${pct}%`,
+    progressExtra: (n: number) => `${n} skipped or shelved`,
+    path: "Path",
+    list: "List",
+    viewLabel: "List view",
+    refresh: "Refresh",
+    recommend: "Let AI recommend books",
+    recommending: "Recommending…",
+    unknownBook: "Unknown title",
+    wereadChip: "WeRead",
+    readingPath: "Reading Path",
+    readingList: "Reading List",
+    checkWeread: "Check WeRead",
+    checkingWeread: "Checking…",
+    genPoints: "Key points",
+    genPointsBusy: "Generating…",
+    stateReading: "Reading",
+    stateUnread: "Not started",
+    stateSkipped: "Skipped",
+    stateShelved: "Shelved",
+    stateDone: "Finished",
+    statePending: "To add",
+    uploaded: "Uploaded",
+    locked: "Locked",
+    notInLibrary: "Not in library",
+    pointsPending: "Key points pending",
+    chapterProgress: (current: number, total: number, pct: number) =>
+      `Ch. ${current}/${total} · ${pct}%`,
+    readOnWeread: "Read on WeRead →",
+    goUpload: "Upload →",
+    startReading: "Start reading",
+    continueReading: "Continue reading",
+    reread: "Read again",
+    moveUp: "↑ Up",
+    moveDown: "↓ Down",
+    replace: "Swap",
+    replacing: "Swapping…",
+    lock: "Lock",
+    unlock: "Unlock",
+    skip: "Skip",
+    restore: "Restore",
+    remove: "Delete",
+    confirmReplace: (title: string) =>
+      `Swapping will replace “${title}” with a new AI recommendation.`,
+    confirmDelete: (title: string) =>
+      `Remove “${title}” from this list? This can't be undone here.`,
+    confirmReplaceOk: "Swap",
+    confirmDeleteOk: "Delete",
+    adjustSummary: "Adjust the list in a sentence",
+    adjustPlaceholder:
+      "One-line hint, e.g. more theory / easier / more practical",
+    regenerate: "Regenerate",
+    regenerating: "Generating…",
+    apply: "Apply",
+    discard: "Discard",
+    undoRegen: "Undo last regeneration",
+    helpSummary: "How list controls work",
+    helpMove: "Up / Down: change this book's place in the reading order.",
+    helpReplace:
+      "Swap: ask AI to pick a new book for this slot, keeping continuity with the books around it and avoiding duplicates.",
+    helpLock:
+      "Lock: pin this item so AI won't move or replace it when regenerating.",
+    helpShelve:
+      "Shelve: set it aside for now and restore it whenever you're ready.",
+    helpPending:
+      "To add: this book isn't in your library yet. Upload the EPUB, then hit Refresh to make it readable.",
+    helpDelete: "Delete: remove this item from the list.",
+    statusHelp:
+      "Mark themes you want to read first as Priority, and pause others as Shelved. Shelved themes won't enter today's pack. Regenerate in Today after changing.",
+    emptyThemes:
+      "No themes yet. Hit “New research theme” in the top-right to start building a list.",
+    emptyList:
+      "Nothing here yet. AI will recommend 5–6 books based on your description, ordered from easy to hard; you can edit them one by one afterwards.",
+    listNoBooks:
+      "None of these books can be read yet: there's no matching EPUB in your library and no WeRead match. Upload them, then hit Refresh to match by title automatically.",
+    budgetInvalid: "Daily reading budget must be between 5 and 180 minutes.",
+    replaced: (title: string) =>
+      title ? `Swapped in “${title}”.` : "Swapped in a new book.",
+    replaceFailed: (error: string | number) => `Swap failed: ${error}`,
+    budgetSaved:
+      "Budget saved. Hit Regenerate to apply it right away; otherwise it takes effect tomorrow.",
+    budgetSaveFailed: (error: string | number) => `Couldn't save: ${error}`,
+    budgetHelp:
+      "Budget × reading speed decides how much you read each day. Hit Regenerate to apply now; otherwise it takes effect tomorrow.",
+    itemUpdateFailed: (error: string | number) => `Update failed: ${error}`,
+    statusUpdated: (status: string) =>
+      status === "shelved"
+        ? "Shelved: this theme won't enter today's pack, and your reading history is kept."
+        : status === "priority"
+          ? "Marked as priority."
+          : "Back to normal order.",
+    deleteConfirm: (name: string) =>
+      `Delete the theme “${name}” and its list? This can't be undone.`,
+    deleted: (name: string) => `Deleted “${name}”.`,
+    deleteFailed: (error: string | number) => `Delete failed: ${error}`,
+    createFailed: (error: string | number) => `Couldn't create: ${error}`,
+    listGenerated: (hint?: string) =>
+      ["Draft list generated. Review and adjust it as needed.", hint]
+        .filter(Boolean)
+        .join(" "),
+    listGenerateFailed: (error: string | number) =>
+      `Couldn't generate: ${error}`,
+    refreshed: (matched: number) => `Refreshed: ${matched} items are readable.`,
+    refreshFailed: (error: string | number) => `Refresh failed: ${error}`,
+    regenFailed: (error: string | number) => `Regeneration failed: ${error}`,
+    regenApplied: "List replaced. You can undo it below.",
+    regenApplyFailed: (error: string | number) =>
+      `Couldn't replace: ${error}`,
+    regenUndone: "Undone. The list is back to how it was.",
+    regenUndoFailed: (error: string | number) =>
+      `Couldn't undo: ${error}`,
+    confirmFailed: (error: string) => `Couldn't confirm: ${error}`,
+    confirmedMsg: "List confirmed. Future reading follows this list.",
+    keyPointsRunning: "List confirmed. Extracting key points…",
+    keyPointsDone: (n: number) =>
+      n > 0 ? `Key points generated for ${n} books.` : "Nothing to generate.",
+    keyPointsFailed: (error: string | number) =>
+      `Key points failed: ${error}`,
+    regenPreview: (kept: number, removed: number) =>
+      `Keeping ${kept}, replacing ${removed}, adding:`,
+    completionBanner: (name: string) =>
+      `You've finished the list for “${name}”`,
+    completionSub: (count: number) => `${count} items`,
+    domainSaveFailed: (error: string | number) =>
+      `Couldn't save domain: ${error}`,
+    domainUpdated: (domain: string) => `Domain set to “${domain}”`,
+    uncategorized: "Uncategorized",
+    wereadSearching: "Checking WeRead…",
+    wereadFound: (n: number) => `Found ${n} readable on WeRead`,
+    wereadNoNeed: "No books need checking",
+    wereadNotFound: "These books aren't available on WeRead yet",
+    wereadFailed: (error: string | number) => `WeRead check failed: ${error}`,
+  },
   today: {
     title: "Today's reading",
     metaChapters: (chapters: number, minutes: number) =>
