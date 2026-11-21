@@ -681,14 +681,30 @@ export default function BookReader() {
           >
             听书
           </button>
-          {!isChinese && Object.keys(translations).length > 0 && (
-            <button
-              className="reader-mini"
-              onClick={() => setShowTranslation(!showTranslation)}
-            >
-              {showTranslation ? "原文" : "翻译"}
-            </button>
-          )}
+          {!isChinese &&
+            (Object.keys(translations).length > 0 ? (
+              <button
+                className="reader-mini"
+                onClick={() => setShowTranslation(!showTranslation)}
+              >
+                {showTranslation ? "原文" : "翻译"}
+              </button>
+            ) : (
+              <button
+                className="reader-mini"
+                disabled={translating}
+                style={{ opacity: translating ? 0.5 : 1 }}
+                title="会调用一次 AI 翻译；未配置 DEEPSEEK_API_KEY 时不可用"
+                onClick={() => {
+                  const ids = paragraphs
+                    .filter((p) => !p.image_path)
+                    .map((p) => p.id);
+                  if (ids.length > 0) translateParagraphs(ids);
+                }}
+              >
+                {translating ? "翻译中…" : "翻译"}
+              </button>
+            ))}
           <button
             className="reader-mini"
             onClick={() => setSettingsOpen((v) => !v)}
@@ -763,32 +779,10 @@ export default function BookReader() {
               <h1 className="reader-chapter-title">{activeChapter.title}</h1>
               <div className="reader-hint">
                 共 {paragraphs.length} 段 · 点击段落可做笔记
-                {!isChinese && (
+                {!isChinese && Object.keys(translations).length > 0 && (
                   <span className="machine-tag"> · 机器翻译，仅供理解大意</span>
                 )}
-                {!isChinese &&
-                  !translating &&
-                  Object.keys(translations).length === 0 && (
-                    <button
-                      type="button"
-                      className="btn-ghost btn-sm"
-                      style={{ marginLeft: 8 }}
-                      title="会调用一次 AI 翻译；未配置 DEEPSEEK_API_KEY 时不可用"
-                      onClick={() => {
-                        const ids = paragraphs
-                          .filter((p) => !p.image_path)
-                          .map((p) => p.id);
-                        if (ids.length > 0) translateParagraphs(ids);
-                      }}
-                    >
-                      翻译本章
-                    </button>
-                  )}
               </div>
-
-              {!isChinese && translating && (
-                <div className="reader-hint">翻译中…</div>
-              )}
 
               {!isChinese && !translating && translateError && (
                 <div className="reader-hint" role="status">

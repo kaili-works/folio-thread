@@ -3,7 +3,7 @@
    上一版本的界面。 */
 // 缓存名需随框架大版本升级递增：旧缓存里的 HTML 会引用已不存在的
 // /_next/static 旧哈希 chunk，离线打开会白屏。
-const CACHE = "daily-reading-v7";
+const CACHE = "daily-reading-v8";
 const SHELLS = ["/", "/today"];
 
 // 安装时预缓存应用外壳：首次访问时页面由网络直接返回，SW 尚未接管，
