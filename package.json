@@ -3,14 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "node scripts/sync-audio.mjs",
+    "predev": "node scripts/sync-audio.mjs && node scripts/check-env.mjs",
     "dev": "next dev",
     "prebuild": "node scripts/sync-audio.mjs",
     "build": "next build",
-    "prestart": "node scripts/sync-audio.mjs",
+    "prestart": "node scripts/sync-audio.mjs && node scripts/check-env.mjs",
     "start": "next start",
     "verify": "node scripts/verify.mjs",
     "verify:full": "node scripts/verify.mjs --build",
+    "db:init": "node scripts/build-init-sql.mjs",
+    "doctor": "node scripts/check-env.mjs --db",
     "import": "tsx scripts/import-epub.ts"
   },
   "dependencies": {

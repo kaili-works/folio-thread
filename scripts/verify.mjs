@@ -235,6 +235,10 @@ if (NO_HTTP) {
     if (tts.status === 200) report("PASS", "GET /api/tts 公开音色列表", "200");
     else report("FAIL", "GET /api/tts 公开音色列表", `期望 200，实际 ${tts.status}`);
 
+    const health = await request("/api/health");
+    if (health.status === 200) report("PASS", "GET /api/health", "200");
+    else report("FAIL", "GET /api/health", `期望 200，实际 ${health.status}（检查环境变量）`);
+
     const sw = await request("/sw.js");
     if (sw.status !== 200) {
       report("FAIL", "GET /sw.js", `期望 200，实际 ${sw.status}`);
