@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,27 @@ export default function AppNav() {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const langRef = useRef<HTMLDivElement>(null);
+
+  // 语言菜单：点击外部或按 Esc 关闭
+  useEffect(() => {
+    if (!langOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) {
+        setLangOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setLangOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [langOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -97,14 +118,46 @@ export default function AppNav() {
             >
               <Icon name="guide" />
             </button>
-            <button
-              className="lang-switch"
-              aria-label={t.nav.switchLanguage}
-              title={t.nav.switchLanguage}
-              onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
-            >
-              {locale === "zh" ? "中文" : "EN"}
-            </button>
+            <div className="lang-menu-wrap" ref={langRef}>
+              <button
+                className={`icon-only lang-trigger${langOpen ? " menu-open" : ""}`}
+                aria-label={t.nav.switchLanguage}
+                aria-haspopup="menu"
+                aria-expanded={langOpen}
+                data-tip={t.nav.switchLanguage}
+                onClick={() => setLangOpen((v) => !v)}
+              >
+                <Icon name="globe" size={16} />
+              </button>
+              {langOpen && (
+                <div className="lang-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={locale === "zh"}
+                    className={locale === "zh" ? "on" : ""}
+                    onClick={() => {
+                      setLocale("zh");
+                      setLangOpen(false);
+                    }}
+                  >
+                    中文
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={locale === "en"}
+                    className={locale === "en" ? "on" : ""}
+                    onClick={() => {
+                      setLocale("en");
+                      setLangOpen(false);
+                    }}
+                  >
+                    English
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               className="icon-only"
               onClick={logout}

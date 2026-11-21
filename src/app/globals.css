@@ -6507,27 +6507,66 @@ body:has(.auth-split) {
   }
 }
 
-/* ---- 顶栏语言切换：文字胶囊 ---- */
-.app-header-right .lang-switch {
+/* ---- 顶栏语言切换：地球图标 + 下拉菜单 ---- */
+.lang-menu-wrap {
+  position: relative;
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 46px;
-  padding: 4px 10px;
-  border: 1px solid var(--ft-rule);
-  border-radius: 99px;
-  background: transparent;
-  color: var(--ft-muted);
-  font-family: var(--font-sans);
-  font-size: 11.5px;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 
-.app-header-right .lang-switch:hover {
-  border-color: var(--ft-green-line);
+/* 菜单展开时不再弹图标提示，避免和菜单重叠 */
+.app-header-right .lang-trigger.menu-open::after {
+  display: none;
+}
+
+.app-header-right .lang-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 70;
+  min-width: 128px;
+  padding: 5px;
+  border: 1px solid var(--ft-rule);
+  border-radius: 10px;
+  background: var(--ft-paper);
+  box-shadow: 0 8px 22px rgba(31, 41, 31, 0.09);
+}
+
+.app-header-right .lang-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ft-ink-2);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-header-right .lang-menu button::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.app-header-right .lang-menu button.on::before {
+  background: var(--ft-green);
+}
+
+.app-header-right .lang-menu button.on {
+  color: var(--ft-ink);
+  font-weight: 600;
+}
+
+.app-header-right .lang-menu button:hover {
   background: var(--ft-green-soft);
   color: var(--ft-ink);
 }

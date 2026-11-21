@@ -30,7 +30,8 @@ export type IconName =
   | "themes"
   | "stats"
   | "market"
-  | "today";
+  | "today"
+  | "globe";
 
 export function IconSprite() {
   return (
@@ -65,6 +66,7 @@ export function IconSprite() {
       <symbol id="i-stats" viewBox="0 0 24 24"><path d="M3 20h18" /><path d="M6 20v-7M12 20V5M18 20v-11" /></symbol>
       <symbol id="i-market" viewBox="0 0 24 24"><path d="M4 4h7l9 9-7 7-9-9V4Z" /><circle cx="8.2" cy="8.2" r="1.2" /></symbol>
       <symbol id="i-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 9h16M8 3v4M16 3v4" /><circle cx="12" cy="14.5" r="1.3" /></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M3.5 12h17" /><path d="M12 3.5c2.4 2.4 3.7 5.3 3.7 8.5s-1.3 6.1-3.7 8.5c-2.4-2.4-3.7-5.3-3.7-8.5S9.6 5.9 12 3.5Z" /></symbol>
     </svg>
   );
 }
