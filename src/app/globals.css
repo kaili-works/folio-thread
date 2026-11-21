@@ -5936,3 +5936,21 @@ body:has(.auth-split) {
     gap: 14px;
   }
 }
+
+/* 操作反馈：固定底部，避免提示出现在视野外 */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  z-index: 80;
+  max-width: min(80vw, 560px);
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #111827;
+  color: #f9fafb;
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}

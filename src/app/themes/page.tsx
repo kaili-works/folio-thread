@@ -634,6 +634,13 @@ export default function ThemesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listId, items]);
 
+  // 提示 6 秒后自动消失，避免浮动提示长期遮挡
+  useEffect(() => {
+    if (!message) return;
+    const timer = window.setTimeout(() => setMessage(""), 6000);
+    return () => window.clearTimeout(timer);
+  }, [message]);
+
   // 抽屉打开时按 Esc 关闭
   useEffect(() => {
     if (!pickerOpen) return;
@@ -751,9 +758,9 @@ export default function ThemesPage() {
         )}
 
         {message && (
-          <p className="muted" style={{ margin: "10px 0 0" }}>
+          <div className="toast" role="status">
             {message}
-          </p>
+          </div>
         )}
 
         {/* 移动端：把「我的主题」收成一行入口，点开用底部抽屉选择 */}
