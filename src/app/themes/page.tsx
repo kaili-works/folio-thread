@@ -76,8 +76,6 @@ export default function ThemesPage() {
   } | null>(null);
   // 清单视图：路径（默认）/ 列表
   const [view, setView] = useState<"path" | "list">("path");
-  // 路径节点内展开的管理动作
-  const [manageItemId, setManageItemId] = useState<string | null>(null);
   // 一句话调整面板
   const [adjustOpen, setAdjustOpen] = useState(false);
   // 生成今日包
@@ -280,7 +278,6 @@ export default function ThemesPage() {
     setActiveTheme(next);
     setThemeBudget(String(next.daily_budget_minutes ?? 30));
     setMessage("");
-    setManageItemId(null);
     loadList(next.id);
   }
 
@@ -1454,89 +1451,71 @@ export default function ThemesPage() {
                               →
                             </Link>
                           ) : null}
-                          <span className="act">
-                            <button
-                              className="btn-quiet btn-sm"
-                              onClick={() =>
-                                setManageItemId(
-                                  manageItemId === it.id ? null : it.id,
-                                )
-                              }
-                              aria-expanded={manageItemId === it.id}
-                            >
-                              {manageItemId === it.id
-                                ? t.themes.manageClose
-                                : t.themes.manage}
-                            </button>
-                          </span>
                         </div>
 
-                        {manageItemId === it.id && (
-                          <div className="manage-row">
-                            <span className="lbl">{t.themes.manage}</span>
+                        <div className="manage-row">
+                          <button
+                            className="btn-line btn-xs"
+                            onClick={() => moveItem(it.id, "up")}
+                            disabled={idx === 0}
+                          >
+                            {t.themes.moveUp}
+                          </button>
+                          <button
+                            className="btn-line btn-xs"
+                            onClick={() => moveItem(it.id, "down")}
+                            disabled={idx === items.length - 1}
+                          >
+                            {t.themes.moveDown}
+                          </button>
+                          <button
+                            className="btn-line btn-xs"
+                            onClick={() =>
+                              setConfirmAction({
+                                kind: "replace",
+                                itemId: it.id,
+                              })
+                            }
+                            disabled={replacingId !== null}
+                          >
+                            {replacingId === it.id
+                              ? t.themes.replacing
+                              : t.themes.replace}
+                          </button>
+                          <button
+                            className="btn-line btn-xs"
+                            onClick={() => toggleLock(it.id)}
+                          >
+                            {it.locked ? t.themes.unlock : t.themes.lock}
+                          </button>
+                          {it.status === "skipped" ||
+                          it.status === "shelved" ? (
                             <button
-                              className="btn-line btn-xs"
-                              onClick={() => moveItem(it.id, "up")}
-                              disabled={idx === 0}
+                              className="btn-quiet btn-xs"
+                              onClick={() => setItemStatus(it.id, "unread")}
                             >
-                              {t.themes.moveUp}
+                              {t.themes.restore}
                             </button>
+                          ) : (
                             <button
-                              className="btn-line btn-xs"
-                              onClick={() => moveItem(it.id, "down")}
-                              disabled={idx === items.length - 1}
+                              className="btn-quiet btn-xs"
+                              onClick={() => setItemStatus(it.id, "skipped")}
                             >
-                              {t.themes.moveDown}
+                              {t.themes.skip}
                             </button>
-                            <button
-                              className="btn-line btn-xs"
-                              onClick={() =>
-                                setConfirmAction({
-                                  kind: "replace",
-                                  itemId: it.id,
-                                })
-                              }
-                              disabled={replacingId !== null}
-                            >
-                              {replacingId === it.id
-                                ? t.themes.replacing
-                                : t.themes.replace}
-                            </button>
-                            <button
-                              className="btn-line btn-xs"
-                              onClick={() => toggleLock(it.id)}
-                            >
-                              {it.locked ? t.themes.unlock : t.themes.lock}
-                            </button>
-                            {it.status === "skipped" ||
-                            it.status === "shelved" ? (
-                              <button
-                                className="btn-quiet btn-xs"
-                                onClick={() => setItemStatus(it.id, "unread")}
-                              >
-                                {t.themes.restore}
-                              </button>
-                            ) : (
-                              <button
-                                className="btn-quiet btn-xs"
-                                onClick={() => setItemStatus(it.id, "skipped")}
-                              >
-                                {t.themes.skip}
-                              </button>
-                            )}
-                            <button
-                              className="btn-danger btn-xs"
-                              onClick={() =>
-                                setConfirmAction({
-                                  kind: "delete",
-                                  itemId: it.id,
-                                })
-                              }
-                            >
-                              {t.themes.remove}
-                            </button>
-                          </div>
-                        )}
+                          )}
+                          <button
+                            className="btn-danger btn-xs"
+                            onClick={() =>
+                              setConfirmAction({
+                                kind: "delete",
+                                itemId: it.id,
+                              })
+                            }
+                          >
+                            {t.themes.remove}
+                          </button>
+                        </div>
 
                         {confirmAction?.itemId === it.id && (
                           <div className="confirm-inline" role="alertdialog">
@@ -1633,7 +1612,6 @@ export default function ThemesPage() {
                               {it.reason}
                             </p>
                           )}
-                          {manageItemId === it.id && (
                           <div className="manage">
                             <button
                               className="btn-ghost btn-xs"
@@ -1697,7 +1675,6 @@ export default function ThemesPage() {
                               {t.themes.remove}
                             </button>
                           </div>
-                          )}
                           {confirmAction?.itemId === it.id && (
                             <div className="confirm-inline" role="alertdialog">
                               <span className="confirm-inline-text">
@@ -1796,19 +1773,6 @@ export default function ThemesPage() {
                               →
                             </Link>
                           ) : null}
-                          <button
-                            className="btn-quiet btn-xs list-manage-btn"
-                            onClick={() =>
-                              setManageItemId(
-                                manageItemId === it.id ? null : it.id,
-                              )
-                            }
-                            aria-expanded={manageItemId === it.id}
-                          >
-                            {manageItemId === it.id
-                              ? t.themes.manageClose
-                              : t.themes.manage}
-                          </button>
                         </div>
                       </div>
                     );

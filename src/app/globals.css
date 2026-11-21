@@ -7080,10 +7080,6 @@ body:has(.auth-split) {
   margin: 10px 0 0 31px;
 }
 
-.themes-page .node-foot .act {
-  margin-left: auto;
-}
-
 .themes-page .node-foot .link {
   font-size: 11.5px;
   color: var(--ft-ink);
@@ -7102,18 +7098,28 @@ body:has(.auth-split) {
 .themes-page .manage-row {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-wrap: wrap;
-  margin: 10px 0 0 31px;
-  padding-top: 9px;
-  border-top: 1px dashed #eceae5;
+  margin: 4px 0 0 31px;
 }
 
-.themes-page .manage-row .lbl {
-  margin-right: 4px;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: var(--ft-faint);
+.themes-page .manage-row .btn-line {
+  padding: 3px 6px;
+  border-color: transparent;
+  font-size: 11.5px;
+  color: var(--ft-muted);
+}
+
+.themes-page .manage-row .btn-line:hover {
+  background: transparent;
+  color: var(--ft-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.themes-page .manage-row .btn-quiet,
+.themes-page .manage-row .btn-danger {
+  font-size: 11.5px;
 }
 
 .themes-page .confirm-inline {
@@ -7294,7 +7300,4 @@ body:has(.auth-split) {
   white-space: nowrap;
 }
 
-.themes-page .list-manage-btn {
-  align-self: flex-end;
-  margin-top: 4px;
-}
+
