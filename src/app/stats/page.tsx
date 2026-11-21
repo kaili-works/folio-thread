@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import AppNav from "@/components/AppNav";
@@ -66,7 +66,7 @@ export default function StatsPage() {
   const [message, setMessage] = useState("");
   const [openThemeId, setOpenThemeId] = useState<string | null>(null);
   const [liftedId, setLiftedId] = useState<string | null>(null);
-  const classifyTried = useRef(false);
+  const [classifying, setClassifying] = useState(false);
 
   async function loadStats() {
     try {
@@ -83,19 +83,28 @@ export default function StatsPage() {
     loadStats();
   }, []);
 
-  // 还有未归类主题时，后台让 AI 归一次，完成后刷新
-  useEffect(() => {
-    if (!stats || !stats.domain_ready || stats.unclassified === 0) return;
-    if (classifyTried.current) return;
-    classifyTried.current = true;
-    fetch("/api/themes/classify", { method: "POST" })
-      .then((r) => r.json())
-      .then((json) => {
-        if (json.updated > 0) loadStats();
-      })
-      .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stats]);
+  // 归类改为显式点击：避免每次打开统计页都触发一次 AI 调用
+  async function classifyThemes() {
+    setClassifying(true);
+    setMessage("");
+    try {
+      const res = await fetch("/api/themes/classify", { method: "POST" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(
+          json.error === "未配置 DEEPSEEK_API_KEY"
+            ? "未配置 DEEPSEEK_API_KEY，无法自动归类（见 README 的 AI 配置）"
+            : json.error || "归类失败，请稍后再试",
+        );
+        return;
+      }
+      if (json.updated > 0) await loadStats();
+    } catch {
+      setMessage("归类失败，请稍后再试");
+    } finally {
+      setClassifying(false);
+    }
+  }
 
   function closeTheme() {
     setOpenThemeId(null);
@@ -172,11 +181,25 @@ export default function StatsPage() {
             <span className="kicker">Stats</span>
             <h1>阅读统计</h1>
           </div>
-          {stats && stats.completed_items.length > 0 && (
-            <button className="btn-ghost btn-sm" onClick={exportMarkdown}>
-              导出已读清单
-            </button>
-          )}
+          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            {stats && stats.unclassified > 0 && (
+              <button
+                className="btn-ghost btn-sm"
+                onClick={classifyThemes}
+                disabled={classifying}
+                title="会调用一次 AI 归类；未配置 DEEPSEEK_API_KEY 时不可用"
+              >
+                {classifying
+                  ? "归类中…"
+                  : `AI 归类 ${stats.unclassified} 个主题`}
+              </button>
+            )}
+            {stats && stats.completed_items.length > 0 && (
+              <button className="btn-ghost btn-sm" onClick={exportMarkdown}>
+                导出已读清单
+              </button>
+            )}
+          </div>
         </div>
 
         {message && <p className="message err">{message}</p>}

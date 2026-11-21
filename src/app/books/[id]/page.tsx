@@ -250,7 +250,12 @@ export default function BookReader() {
         if (json.translations) Object.assign(merged, json.translations);
         if (Array.isArray(json.failed)) failed += json.failed.length;
         if (!res.ok) {
-          setTranslateError(copy.reader.translateFailed);
+          const msg = typeof json.error === "string" ? json.error : "";
+          setTranslateError(
+            msg === "未配置 DEEPSEEK_API_KEY"
+              ? "未配置 DEEPSEEK_API_KEY，翻译功能不可用（见 README 的 AI 配置）"
+              : msg || copy.reader.translateFailed,
+          );
           break;
         }
       }
@@ -419,24 +424,10 @@ export default function BookReader() {
     for (const n of notes) noteMap[n.paragraph_id] = n;
     setAnnotations(noteMap);
 
-    if (
-      data &&
-      data.length > 0 &&
-      !isOffline &&
-      doc?.language &&
-      !isChineseLang(doc.language)
-    ) {
-      const textParagraphs = data.filter((p) => !p.image_path);
-      if (textParagraphs.length > 0) {
-        translateParagraphs(textParagraphs.map((p) => p.id));
-      } else {
-        setTranslations({});
-        setTranslating(false);
-      }
-    } else {
-      setTranslations({});
-      setTranslating(false);
-    }
+    // 翻译改为显式触发（避免打开一本书就产生 AI 费用）：换章只清空
+    setTranslations({});
+    setTranslating(false);
+    setTranslateError("");
 
     // 预取前后各一章，翻页时直接命中缓存
     if (!isOffline) {
@@ -690,7 +681,7 @@ export default function BookReader() {
           >
             听书
           </button>
-          {!isChinese && (
+          {!isChinese && Object.keys(translations).length > 0 && (
             <button
               className="reader-mini"
               onClick={() => setShowTranslation(!showTranslation)}
@@ -775,6 +766,24 @@ export default function BookReader() {
                 {!isChinese && (
                   <span className="machine-tag"> · 机器翻译，仅供理解大意</span>
                 )}
+                {!isChinese &&
+                  !translating &&
+                  Object.keys(translations).length === 0 && (
+                    <button
+                      type="button"
+                      className="btn-ghost btn-sm"
+                      style={{ marginLeft: 8 }}
+                      title="会调用一次 AI 翻译；未配置 DEEPSEEK_API_KEY 时不可用"
+                      onClick={() => {
+                        const ids = paragraphs
+                          .filter((p) => !p.image_path)
+                          .map((p) => p.id);
+                        if (ids.length > 0) translateParagraphs(ids);
+                      }}
+                    >
+                      翻译本章
+                    </button>
+                  )}
               </div>
 
               {!isChinese && translating && (
