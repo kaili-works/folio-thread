@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [open-source]
   pull_request:
 
 permissions:
@@ -72,3 +72,49 @@ jobs:
       - name: Stop server
         if: always()
         run: pkill -f "next start" || true
+
+  docker:
+    name: Docker build · health
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-service-role-key
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+            -t daily-reading:ci .
+
+      - name: Run container
+        run: |
+          docker run -d --name app -p 3000:3000 \
+            -e NEXT_PUBLIC_SUPABASE_URL="$NEXT_PUBLIC_SUPABASE_URL" \
+            -e NEXT_PUBLIC_SUPABASE_ANON_KEY="$NEXT_PUBLIC_SUPABASE_ANON_KEY" \
+            -e SUPABASE_SERVICE_ROLE_KEY="$SUPABASE_SERVICE_ROLE_KEY" \
+            daily-reading:ci
+
+      - name: Health check
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS http://localhost:3000/api/health > /dev/null 2>&1; then
+              echo "healthy after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "health check failed"
+          docker logs app
+          exit 1
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f app || true

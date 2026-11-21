@@ -49,6 +49,8 @@ curl "localhost:3000/api/health?db=1"   # 页面运行后再查一次
 
 ## Docker
 
+> 这是可选路径：CI 会构建镜像并检查 `/api/health`（推送到 GitHub 后生效）。作者的日常部署不使用容器，见下方「本机部署」。
+
 ```bash
 cp .env.example .env    # 填写三个必填项
 docker compose up --build
@@ -59,6 +61,16 @@ docker compose up --build
 - `NEXT_PUBLIC_*` 在构建期内联进客户端代码，**改了这两个值必须重新 build**。
 - 容器健康检查调用 `/api/health`，环境变量缺失时会显示 unhealthy。
 - 构建阶段由 `scripts/sync-audio.mjs` 自动生成 `public/audio/`，无需手动准备音频。
+
+## 本机部署
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+服务监听 `3000` 端口。远程访问走 Tailscale 域名，手机浏览器添加到主屏后以独立窗口运行。该路径不产出 `.next/standalone`，因此构建比容器方式更快（见 `next.config.mjs`）。
 
 ## 可选集成（全部可缺省）
 
