@@ -7108,7 +7108,7 @@ body:has(.auth-split) {
   border: 1px solid #dde5d6;
   border-radius: 6px;
   background: #f6f7ea;
-  color: var(--ft-ink);
+  color: var(--ft-muted);
   cursor: pointer;
 }
 
@@ -7119,6 +7119,7 @@ body:has(.auth-split) {
 
 .themes-page .item-act:hover:not(:disabled) {
   background: #f1f3e4;
+  color: var(--ft-ink);
 }
 
 .themes-page .item-act:disabled {
