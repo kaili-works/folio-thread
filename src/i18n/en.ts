@@ -19,7 +19,7 @@ export const en: Dict = {
   auth: {
     brandKicker: "FolioThread",
     brandTitle: "Read with direction.",
-    brandLead: "One question, a little reading every day.",
+    brandLead: "One theme, a little reading every day.",
     steps: [
       "Describe the topic you want to study in one sentence",
       "AI recommends an ordered reading list",
