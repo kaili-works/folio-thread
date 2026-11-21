@@ -601,10 +601,9 @@ export default function DailyPackCard() {
                         }
                       />
                       <p className="hint">
-                        今日已读 {minutes} / {planned} 分钟 · 全书{" "}
-                        {it.weread.book_progress ?? "—"}%
+                        今日已读 {minutes} / {planned} 分钟
                         {autoTracked
-                          ? "。按阅读时长自动计算，读满计划分钟就算完成今天这一档；全书进度只表示这本书读完了没有。"
+                          ? "。按阅读时长自动计算，读满计划分钟就算完成今天这一档。"
                           : "。暂时读不到微信读书的阅读时长，可以手动拖一下。"}
                       </p>
                     </div>
