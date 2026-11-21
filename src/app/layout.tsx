@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
+import { I18nProvider } from "@/i18n";
 
 export const metadata: Metadata = {
   title: "FolioThread · 页脉研读",
@@ -33,7 +34,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        {children}
+        <I18nProvider>{children}</I18nProvider>
         <ServiceWorkerRegister />
       </body>
     </html>

@@ -13,6 +13,7 @@
     "verify:full": "node scripts/verify.mjs --build",
     "db:init": "node scripts/build-init-sql.mjs",
     "doctor": "node scripts/check-env.mjs --db",
+    "scan:copy": "node scripts/scan-copy.mjs",
     "import": "tsx scripts/import-epub.ts"
   },
   "dependencies": {

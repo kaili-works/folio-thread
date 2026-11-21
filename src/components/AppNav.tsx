@@ -7,12 +7,14 @@ import { createClient } from "@/lib/supabase/client";
 import { clearUserCache } from "@/lib/offline";
 import OnboardingModal from "@/components/OnboardingModal";
 import GuideModal from "@/components/GuideModal";
+import { useI18n } from "@/i18n";
 
 // 应用外壳导航：桌面顶栏 + 移动端底部三栏（左=市集，中=＋创建，右=今日）
 export default function AppNav() {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
+  const { locale, t, setLocale } = useI18n();
 
   const [userId, setUserId] = useState<string | null>(null);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -45,64 +47,70 @@ export default function AppNav() {
           </Link>
           <nav className="app-nav-desktop">
             <Link href="/themes" className={isActive("/themes") ? "active" : ""}>
-              主题与清单
+              {t.nav.themes}
             </Link>
             <Link href="/library" className={isActive("/library") ? "active" : ""}>
-              我的书库
+              {t.nav.library}
             </Link>
             <Link href="/today" className={isActive("/today") ? "active" : ""}>
-              今日阅读包
+              {t.nav.today}
             </Link>
             <Link href="/stats" className={isActive("/stats") ? "active" : ""}>
-              统计
+              {t.nav.stats}
             </Link>
           </nav>
           <div className="app-header-right">
             <Link
               href="/market"
               className="app-header-market"
-              aria-label="书单市集"
+              aria-label={t.nav.market}
             >
-              书单市集
+              {t.nav.market}
             </Link>
             <Link
               href="/library"
               className={`app-header-quick app-header-library${isActive("/library") ? " active" : ""}`}
-              aria-label="书库"
+              aria-label={t.nav.libraryShort}
             >
-              书库
+              {t.nav.libraryShort}
             </Link>
             <Link
               href="/notes"
               className={`app-header-quick app-header-notes ${isActive("/notes") ? "active" : ""}`}
-              aria-label="笔记"
+              aria-label={t.nav.notes}
             >
-              笔记
+              {t.nav.notes}
             </Link>
             <button
-              aria-label="操作指南"
+              aria-label={t.nav.guide}
               onClick={() => setGuideOpen(true)}
             >
-              指南
+              {t.nav.guide}
             </button>
-            <button onClick={logout}>退出</button>
+            <button
+              aria-label={t.nav.switchLanguage}
+              onClick={() => setLocale(locale === "zh" ? "en" : "zh")}
+            >
+              {locale === "zh" ? "EN" : "中"}
+            </button>
+            <button onClick={logout}>{t.nav.logout}</button>
           </div>
         </div>
       </header>
 
       <nav className="app-tabs">
         <Link href="/market" className={isActive("/market") ? "active" : ""}>
-          <span className="tab-label">书单市集</span>
+          <span className="tab-label">{t.nav.market}</span>
         </Link>
         <Link
           href="/themes"
           className={`tab-plus ${isActive("/themes") ? "active" : ""}`}
         >
           <span className="plus-circle">＋</span>
-          <span>新建</span>
+          <span>{t.nav.newTheme}</span>
         </Link>
         <Link href="/today" className={isActive("/today") ? "active" : ""}>
-          <span className="tab-label">今日</span>
+          <span className="tab-label">{t.nav.todayShort}</span>
         </Link>
       </nav>
 
