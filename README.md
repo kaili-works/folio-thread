@@ -68,6 +68,15 @@ docker compose up --build
 | `WEREAD_API_KEY` | 隐藏「微信读书可读」入口与标签 |
 | `EDGE_TTS_PYTHON` / `AZURE_SPEECH_KEY` | 跳过对应语音，回落到浏览器内置语音 |
 
+## 背景音乐（可选）
+
+仓库不附带第三方音乐。听书模式的背景音按以下顺序取用：
+
+1. `background-music/rain-loop.mp3`、`background-music/piano-loop.mp3`（自行放入，已被 `.gitignore` 忽略）；
+2. 缺失时回落到 `assets/audio-fallback/` 下由 `scripts/make_audio.py` 生成的 CC0 合成音。
+
+使用自己的音乐时，按这两个文件名放入 `background-music/` 即可，`npm run dev` / `npm run build` 会自动同步到 `public/audio`。作者本地使用的 Pixabay 曲目与许可说明见 [NOTICE](NOTICE)。
+
 ## 自带书籍
 
 仓库**不包含任何书籍正文或封面**。导入的 EPUB 只写入你自己的 Supabase 项目与 Storage。支持界面导入，也可用：
@@ -84,4 +93,4 @@ npm run import -- ./path/to/book.epub
 
 ## License
 
-代码以 MIT 发布，见 [LICENSE](LICENSE)。背景音乐由 `scripts/make_audio.py` 程序合成、以 CC0 发布，不属于 MIT 范围，详见 [NOTICE](NOTICE)。
+代码以 MIT 发布，见 [LICENSE](LICENSE)。第三方背景音乐不入库，来源与许可见 [NOTICE](NOTICE)；仓库内的兜底音频由 `scripts/make_audio.py` 合成，以 CC0 发布。

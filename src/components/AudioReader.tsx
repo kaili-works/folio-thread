@@ -51,7 +51,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
   >("unknown");
   const [notice, setNotice] = useState("");
   const [music, setMusic] = useState<MusicTrack>("rain");
-  const [musicVolume, setMusicVolume] = useState(0.06);
+  const [musicVolume, setMusicVolume] = useState(0.1);
   const [localTrack, setLocalTrack] = useState<{ url: string; name: string } | null>(
     null,
   );
@@ -197,7 +197,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
     const src =
       music === "local"
         ? localTrack?.url
-        : `/audio/${music === "piano" ? "piano" : "rain"}-loop.mp3?v=4`;
+        : `/audio/${music === "piano" ? "piano" : "rain"}-loop.mp3?v=5`;
     if (!src) return;
 
     let el = musicRef.current;

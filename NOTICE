@@ -7,9 +7,21 @@ FolioThread（页脉研读）
    除本文件明确列出的内容外，本仓库源代码以 MIT 许可发布。
 
 2. 音频素材
-   background-music/rain-loop.mp3 与 background-music/piano-loop.mp3 由本仓库的
+
+   2.1 第三方音乐（不在本仓库中）
+   作者本地使用的背景音乐来自 Pixabay，因 Pixabay 内容许可不允许将原始音频原样再
+   分发，这些文件未纳入版本库与仓库历史：
+
+   - "Gymnopédie No. 1"（作曲：Erik Satie，演奏：abydos_music），Pixabay，ID 176573
+   - "Sleep Well (Rainy Toasted White Noise Mix)"（gingerleegalaxy），Pixabay，ID 229397
+
+   许可说明：https://pixabay.com/service/license-summary/
+   Satie 的作品本身已进入公有领域，但录音/演奏版本仍受许可约束。
+
+   2.2 CC0 兜底音源
+   assets/audio-fallback/rain-loop.mp3 与 assets/audio-fallback/piano-loop.mp3 由
    scripts/make_audio.py 纯程序合成（滤波噪声与合成音符），不包含任何第三方录音、
-   采样或音乐作品。
+   采样或音乐作品。它们仅在 background-music/ 缺少对应文件时使用。
 
    作者将这两个音频文件以 CC0 1.0 Universal（公共领域贡献）放弃权利：
    https://creativecommons.org/publicdomain/zero/1.0/

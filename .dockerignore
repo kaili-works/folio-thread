@@ -7,8 +7,10 @@ node_modules
 !.env.example
 *.log
 
-# 构建时由 background-music/ 重新生成
+# 构建时由 background-music/ 或 assets/audio-fallback/ 重新生成
 public/audio
+# 本地下载的第三方音乐，不进入镜像
+background-music/*.mp3
 
 # 设计稿与本地产物
 .screenshots

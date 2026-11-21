@@ -40,3 +40,6 @@ app.log
 /预览_*.html
 # 由 background-music/ 同步生成的音频副本（npm run build/dev/start 前自动复制）
 /public/audio/*.mp3
+
+# 本地下载的第三方背景音乐，不随仓库分发（说明见 background-music/README.md）
+/background-music/*.mp3

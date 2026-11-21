@@ -1,15 +1,17 @@
-"""生成背景音（雨声 / 钢琴），输出到 public/audio。
+"""生成背景音（雨声 / 钢琴），输出到 background-music，再由 sync-audio 复制到 public/audio。
 
-纯程序合成、无版权素材；钢琴约 4 分钟，用四段不同和声与旋律变奏避免重复感。
-用法：python scripts/make_audio.py
+纯程序合成、无版权素材。钢琴为 Gymnopédie 风格原创小品：
+3/4 慢板（约 66 BPM），左手低音 + 中音区和弦，右手稀疏长音旋律，约 3 分钟。
+用法：python scripts/make_audio.py && node scripts/sync-audio.mjs
 """
 import os
 
 import lameenc
 import numpy as np
+from scipy.signal import fftconvolve
 
 SR = 22050
-OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "public", "audio")
+OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "background-music")
 
 
 def fft_lowpass(x: np.ndarray, cutoff: float, order: int = 2) -> np.ndarray:
@@ -56,112 +58,187 @@ def make_rain(seconds: int = 90) -> np.ndarray:
     return rain / (np.max(np.abs(rain)) + 1e-9) * 0.55
 
 
-PITCH = {
-    "F2": 87.31, "G2": 98.00, "A2": 110.00, "C3": 130.81, "D3": 146.83, "E3": 164.81,
-    "F3": 174.61, "G3": 196.00, "A3": 220.00, "B3": 246.94, "C4": 261.63, "D4": 293.66,
-    "E4": 329.63, "F4": 349.23, "G4": 392.00, "A4": 440.00, "B4": 493.88, "C5": 523.25,
-    "D5": 587.33, "E5": 659.25, "G5": 783.99, "A5": 880.00,
+NOTE = {
+    "B1": 61.74, "D2": 73.42, "E2": 82.41, "F#2": 92.50, "G2": 98.00, "A2": 110.00, "B2": 123.47,
+    "C#3": 138.59, "D3": 146.83, "E3": 164.81, "F#3": 185.00, "G3": 196.00, "A3": 220.00, "B3": 246.94,
+    "C#4": 277.18, "D4": 293.66, "E4": 329.63, "F#4": 369.99, "G4": 392.00, "A4": 440.00, "B4": 493.88,
+    "C#5": 554.37, "D5": 587.33, "E5": 659.25, "F#5": 739.99, "A5": 880.00,
 }
-SCALE = ["A3", "B3", "C4", "D4", "E4", "F4", "G4", "A4", "B4", "C5", "D5", "E5", "G5", "A5"]
+
+# 每个和弦给出低音与中音区排列，模仿 Satie 的“低音 + 悬挂和弦”
+CHORDS = {
+    "Dmaj7": ("D2", ["D3", "F#3", "A3", "C#4"]),
+    "Gmaj7": ("G2", ["G3", "B3", "D4", "F#4"]),
+    "Bm7": ("B2", ["B3", "D4", "F#4", "A3"]),
+    "Em7": ("E2", ["E3", "G3", "B3", "D4"]),
+    "A7sus4": ("A2", ["A3", "D4", "E4", "G4"]),
+    "F#m7": ("F#2", ["F#3", "A3", "C#4", "E4"]),
+}
+
+TEMPLATE_CHORDS = {
+    "I": ["Dmaj7", "Gmaj7", "Dmaj7", "Gmaj7"],
+    "A": ["Dmaj7", "Gmaj7", "Dmaj7", "Gmaj7"],
+    "B": ["F#m7", "Bm7", "Em7", "A7sus4"],
+    "C": ["Dmaj7", "Gmaj7", "Bm7", "F#m7"],
+    "D": ["Em7", "A7sus4", "Dmaj7", "Dmaj7"],
+}
+
+# 旋律按 (小节序号, 起始拍, 时值拍, 音名) 写死，保证乐句可记忆而不是随机游走
+PHRASES = {
+    "A1": [
+        (0, 0, 2.0, "A4"), (0, 2, 1.0, "F#4"),
+        (1, 0, 1.5, "B4"), (1, 1.5, 1.5, "A4"),
+        (2, 0, 2.0, "F#4"), (2, 2, 1.0, "E4"),
+        (3, 0, 3.0, "D4"),
+    ],
+    "A2": [
+        (0, 0, 1.5, "F#4"), (0, 1.5, 1.5, "A4"),
+        (1, 0, 2.0, "B4"), (1, 2, 1.0, "D5"),
+        (2, 0, 1.5, "C#5"), (2, 1.5, 1.5, "A4"),
+        (3, 0, 2.0, "B4"), (3, 2, 1.0, "F#4"),
+    ],
+    "A3": [
+        (0, 0, 2.0, "D5"), (0, 2, 1.0, "C#5"),
+        (1, 0, 1.5, "B4"), (1, 1.5, 1.5, "D5"),
+        (2, 0, 2.0, "A4"), (2, 2, 1.0, "F#4"),
+        (3, 0, 3.0, "G4"),
+    ],
+    "A4": [
+        (0, 0, 1.0, "F#4"), (0, 1, 1.0, "A4"), (0, 2, 1.0, "C#5"),
+        (1, 0, 2.0, "B4"), (1, 2, 1.0, "A4"),
+        (2, 0, 3.0, "F#4"),
+    ],
+    "B1": [
+        (0, 0, 2.0, "C#5"), (0, 2, 1.0, "A4"),
+        (1, 0, 2.0, "B4"), (1, 2, 1.0, "F#4"),
+        (2, 0, 2.0, "G4"), (2, 2, 1.0, "B4"),
+        (3, 0, 3.0, "A4"),
+    ],
+    "B2": [
+        (0, 0, 1.5, "A4"), (0, 1.5, 1.5, "C#5"),
+        (1, 0, 1.5, "D5"), (1, 1.5, 1.5, "B4"),
+        (2, 0, 1.0, "E5"), (2, 1, 1.0, "D5"), (2, 2, 1.0, "B4"),
+        (3, 0, 2.0, "A4"), (3, 2, 1.0, "G4"),
+    ],
+    "C1": [
+        (0, 0, 2.0, "A4"), (0, 2, 1.0, "D5"),
+        (1, 0, 2.0, "B4"), (1, 2, 1.0, "G4"),
+        (2, 0, 2.0, "F#4"), (2, 2, 1.0, "A4"),
+        (3, 0, 3.0, "C#5"),
+    ],
+    "C2": [
+        (0, 0, 1.0, "D5"), (0, 1, 1.0, "C#5"), (0, 2, 1.0, "A4"),
+        (1, 0, 3.0, "B4"),
+        (2, 0, 2.0, "D5"), (2, 2, 1.0, "F#4"),
+        (3, 0, 3.0, "E4"),
+    ],
+    "D1": [
+        (0, 0, 2.0, "B4"), (0, 2, 1.0, "G4"),
+        (1, 0, 2.0, "A4"), (1, 2, 1.0, "E4"),
+        (2, 0, 2.0, "F#4"), (2, 2, 1.0, "A4"),
+        (3, 0, 3.0, "D4"),
+    ],
+}
+
+# 每次 (段落和弦, 旋律)；16 个四小节块，第 1 块是纯伴奏引子
+SEQUENCE = [
+    ("I", None),
+    ("A", "A1"), ("A", "A2"), ("A", "A3"),
+    ("B", "B1"), ("B", "B2"),
+    ("C", "C1"), ("C", "C2"),
+    ("A", "A1"), ("A", "A3"),
+    ("B", "B1"), ("B", "B2"),
+    ("C", "C1"), ("A", "A2"), ("A", "A3"),
+    ("D", "D1"),
+]
 
 
 def piano_note(freq: float, dur: float, amp: float, rng: np.random.Generator) -> np.ndarray:
+    """加性合成：低次泛音 + 轻微失谐双弦 + 锤击噪声，指数衰减。"""
     n = int(dur * SR)
     t = np.arange(n) / SR
-    decay = 1.5 + freq / 900.0
-    env = np.exp(-t * decay) * (1.0 - np.exp(-t * 420.0))
+    attack = 1.0 - np.exp(-t * 260.0)
+    body = np.exp(-t * (0.55 + freq / 900.0))
+    tail = np.exp(-t * (0.22 + freq / 2600.0)) * 0.25
+    env = (body + tail) * attack
+
     tone = np.zeros(n)
-    for k, gain in ((1.0, 1.0), (2.005, 0.44), (3.01, 0.21), (4.03, 0.11), (5.08, 0.055), (6.15, 0.025)):
-        tone += np.sin(2 * np.pi * freq * k * t + rng.uniform(0, 6.28)) * gain * np.exp(-t * decay * (k - 0.6))
-    hammer = rng.normal(0.0, 1.0, n) * np.exp(-t * 300.0) * 0.05
-    return (tone + hammer) * env * amp
+    for k in range(1, 13):
+        partial = freq * k * np.sqrt(1.0 + 0.00035 * k * k)
+        if partial > SR / 2 - 200:
+            break
+        tone += np.sin(2 * np.pi * partial * t) * (1.0 / k**1.35) * np.exp(-t * (0.9 + 0.5 * k))
+
+    # 第二根弦轻微失谐，避免电子琴的“单薄”感
+    tone += 0.35 * np.sin(2 * np.pi * freq * 1.0007 * t + 0.4) * np.exp(-t * 1.1)
+    hammer = rng.normal(0.0, 1.0, n) * np.exp(-t * 260.0) * 0.035
+    return np.tanh((tone + hammer) * env * amp * 1.4)
 
 
-# 四段和声：Am - F - C - G，以及 F - G - Am - Em
-PROGRESSIONS = [
-    [("A2", ["A3", "C4", "E4"]), ("F2", ["F3", "A3", "C4"]), ("C3", ["C4", "E4", "G4"]), ("G2", ["G3", "B3", "D4"])],
-    [("F2", ["F3", "A3", "C4"]), ("G2", ["G3", "B3", "D4"]), ("A2", ["A3", "C4", "E4"]), ("E3", ["E3", "G3", "B3"])],
-    [("A2", ["A3", "C4", "E4"]), ("E3", ["E3", "G3", "B3"]), ("F2", ["F3", "A3", "C4"]), ("G2", ["G3", "B3", "D4"])],
-    [("C3", ["C4", "E4", "G4"]), ("G2", ["G3", "B3", "D4"]), ("A2", ["A3", "C4", "E4"]), ("F2", ["F3", "A3", "C4"])],
-]
-
-RHYTHMS = [
-    [(0, 1.0), (1, 1.0), (2, 2.0)],
-    [(0, 1.5), (1.5, 0.5), (2, 2.0)],
-    [(0, 0.5), (0.5, 0.5), (1, 1.0), (2, 2.0)],
-    [(0, 2.0), (2, 2.0)],
-    [(0, 1.0), (1, 0.5), (1.5, 0.5), (2, 1.5)],
-    [(0, 0.75), (0.75, 0.75), (1.5, 0.5), (2.5, 1.5)],
-]
+def make_ir(seconds: float = 2.6) -> np.ndarray:
+    """合成一段柔和厅堂混响脉冲响应（衰减噪声 + 几次早反射）。"""
+    rng = np.random.default_rng(19)
+    n = int(seconds * SR)
+    t = np.arange(n) / SR
+    ir = rng.normal(0.0, 1.0, n) * np.exp(-t * 2.2)
+    ir = fft_lowpass(ir, 3600.0, 2)
+    for delay, gain in ((0.019, 0.50), (0.031, 0.35), (0.047, 0.25), (0.071, 0.18)):
+        ir[int(delay * SR)] += gain
+    return ir / (np.max(np.abs(ir)) + 1e-9)
 
 
-def make_piano(seconds: int = 240) -> np.ndarray:
-    rng = np.random.default_rng(2024)
-    beat = 0.62
-    bar_beats = 4
-    bar_len = beat * bar_beats
-    n = seconds * SR
-    buf = np.zeros(n + SR * 6)
+def make_piano() -> np.ndarray:
+    rng = np.random.default_rng(2026)
+    beat = 0.84  # ≈ 71 BPM
+    bar_len = beat * 3
+    total_bars = len(SEQUENCE) * 4
+    loop_len = int(total_bars * bar_len * SR)
+    buf = np.zeros(loop_len + SR * 8)
 
-    def add(name: str, start: float, dur: float, amp: float) -> None:
+    def add(name: str, start: float, seconds: float, amp: float) -> None:
         i = int(start * SR)
         if i < 0 or i >= len(buf):
             return
-        note = piano_note(PITCH[name], dur, amp, rng)
+        note = piano_note(NOTE[name], seconds, amp, rng)
         end = min(len(buf), i + len(note))
         buf[i:end] += note[: end - i]
 
-    total_bars = int(seconds / bar_len)
-    section_len = max(1, total_bars // 4)
-    degree = SCALE.index("A4")
+    for block_index, (template, phrase) in enumerate(SEQUENCE):
+        chords = TEMPLATE_CHORDS[template]
+        if block_index == 0:
+            dyn = 0.62
+        elif block_index <= 6:
+            dyn = 0.80 + 0.03 * block_index
+        elif block_index <= 13:
+            dyn = 1.0
+        else:
+            dyn = 0.86
 
-    for bar in range(total_bars):
-        section = min(3, bar // section_len)
-        progression = PROGRESSIONS[section]
-        root, chord = progression[bar % len(progression)]
-        bar_start = bar * bar_len
+        for bar_in_block, chord_name in enumerate(chords):
+            bar = block_index * 4 + bar_in_block
+            bar_start = bar * bar_len + rng.normal(0.0, 0.02)
 
-        # 低音：每小节一次，末段加八度
-        add(root, bar_start, bar_len * 1.6, 0.30)
-        if section >= 2 and bar % 2 == 0:
-            add(root.replace("2", "3").replace("E3", "E3"), bar_start, bar_len * 1.2, 0.16)
+            bass, voicing = CHORDS[chord_name]
+            add(bass, bar_start, bar_len * 1.35, 0.34 * dyn)
 
-        # 分解和弦：段落不同密度，避免机械重复
-        if section != 1:
-            step = 0.5 if section == 3 else 1.0
-            k = 0.0
-            while k < bar_beats:
-                name = chord[int(k / step) % len(chord)]
-                add(name, bar_start + k * beat, 2.0, 0.09 + 0.02 * rng.random())
-                k += step
+            # 和弦落在第二拍，轻微滚奏；这是 Gymnopédie 式的核心律动
+            for k, name in enumerate(voicing):
+                add(name, bar_start + beat + 0.018 * k, bar_len * 1.15, 0.115 * dyn)
 
-        # 旋律：四小节一句，句末留长音形成呼吸
-        if bar % 4 == 3:
+        if phrase is None:
             continue
-        rhythm = RHYTHMS[(bar + section) % len(RHYTHMS)]
-        for pos, length in rhythm:
-            if rng.random() < 0.12:
+        for bar_in_block, pos, length, name in PHRASES[phrase]:
+            if rng.random() < 0.08:
                 continue
-            move = int(rng.integers(-2, 3))
-            degree = max(0, min(len(SCALE) - 2, degree + move))
-            name = SCALE[degree]
-            amp = (0.30 if pos == 0 else 0.22) * (0.9 + 0.2 * rng.random())
-            add(name, bar_start + pos * beat, 3.4, amp)
+            start = (block_index * 4 + bar_in_block) * bar_len + pos * beat + rng.normal(0.0, 0.012)
+            amp = 0.30 * dyn * (0.92 + 0.16 * rng.random())
+            add(name, start, length * beat * 1.25, amp)
 
-        # 第二段与第四段加一条高音对位，音色更厚
-        if section in (1, 3) and bar % 2 == 0:
-            add(SCALE[min(len(SCALE) - 1, degree + 3)], bar_start + beat, 2.6, 0.10)
-
-    buf = buf[:n]
-
-    wet = np.zeros_like(buf)
-    for delay_ms, gain in ((113, 0.30), (197, 0.20), (281, 0.14), (419, 0.09), (563, 0.05)):
-        d = int(delay_ms / 1000 * SR)
-        wet[d:] += buf[:-d] * gain
-    buf = fft_lowpass(buf + wet, 5200.0, 1)
-
-    buf = seamless(buf, 2.0)
-    return buf / (np.max(np.abs(buf)) + 1e-9) * 0.62
+    mix = buf[:loop_len]
+    wet = fftconvolve(mix, make_ir())[:loop_len]
+    mix = fft_highpass(mix * 0.74 + wet * 0.30, 32.0, 1)
+    mix = seamless(mix, 2.8)
+    return mix / (np.max(np.abs(mix)) + 1e-9) * 0.72
 
 
 def write_mp3(samples: np.ndarray, path: str, bitrate: int = 88) -> None:
