@@ -115,25 +115,6 @@ export const copy = {
     completionSub: (count: number) => `共 ${count} 项`,
   },
 
-  library: {
-    pickFile: "请选择 EPUB 文件。",
-    duplicate: (title: string) => `这本书已在书库中：《${title}》，无需重复上传。`,
-    uploadSuccess: (
-      title: string,
-      chapters: number | string,
-      paragraphs: number | string,
-    ) => `上传完成：《${title}》，共 ${chapters} 章、${paragraphs} 段。`,
-    uploadFailed: (error: string) => `上传失败：${error}`,
-    deleteConfirm: "从书库删除这本书？",
-    deleteFailed: (error: string) => `删除失败：${error}`,
-    pendingHelp:
-      "这些阅读清单中的书还未上传书库。上传 EPUB 后到「主题与清单」点「刷新」可自动匹配。",
-    uploadedHelp: "已上传的 EPUB 都在这里，点击书名即可打开阅读。",
-    empty:
-      "书库还是空的。顺序是：创建主题 → 生成并确认清单 → 按清单上传 EPUB → 今日包每天自动生成。",
-    emptyLink: "去创建主题",
-  },
-
   market: {
     intro:
       "这里整理了搭配好的主题书单，选中即可转为你的清单；也可以随机生成一份新的。",

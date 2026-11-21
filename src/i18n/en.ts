@@ -102,6 +102,59 @@ export const en: Dict = {
         ? { value: (n / 1000).toFixed(1), unit: "k words" }
         : { value: n.toLocaleString("en-US"), unit: "words" },
   },
+  library: {
+    kicker: "Your shelf",
+    title: "Library",
+    shelfMeta: (books: number, pending: number, words: string) =>
+      `${books} book${books === 1 ? "" : "s"} · ${pending} pending · ${words} total`,
+    wordCount: (n: number) =>
+      n >= 1000
+        ? `${(n / 1000).toFixed(1)}k words`
+        : `${n.toLocaleString("en-US")} words`,
+    search: "Search library",
+    closeSearch: "Close search",
+    searchPlaceholder: "Search by title or author",
+    noResults: "No matching books.",
+    upload: "Upload EPUB",
+    uploadTitle: "Upload an EPUB",
+    uploadLead:
+      "Up to 50 MB each · EPUB only for now. Convert PDF, MOBI, AZW3, or TXT files to EPUB before uploading.",
+    uploadPrivacy:
+      "Only upload files you have the right to use. Non-Chinese books are sent to a third-party AI service (DeepSeek) for machine translation while reading.",
+    uploading: "Uploading and parsing…",
+    chooseFile: "Choose file",
+    reselect: "Choose another",
+    picked: (name: string, size: string) => `Selected: ${name} (${size})`,
+    submit: "Upload",
+    submitting: "Parsing…",
+    shelfKicker: "Shelf",
+    pendingKicker: "To add",
+    pendingBadge: "To add",
+    pendingHelp:
+      "These books are on your reading lists but aren't in the library yet. Upload the EPUBs, then hit Refresh in Themes & Lists to match them automatically.",
+    pendingFrom: (themes: string[]) => `From: ${themes.join(", ")}`,
+    unknownAuthor: "Unknown author",
+    expandAll: (n: number) => `Show all ${n}`,
+    collapse: "Show less",
+    emptyTitle: "Upload your first EPUB",
+    empty:
+      "Your library is empty. The path is: create a theme → generate and confirm a list → upload the EPUBs → a new daily pack is generated each day.",
+    emptyLink: "Create a theme",
+    loading: "Loading your library…",
+    pickFile: "Choose an EPUB file first.",
+    duplicate: (title: string) =>
+      `This book is already in your library: “${title}”.`,
+    uploadSuccess: (
+      title: string,
+      chapters: number | string,
+      paragraphs: number | string,
+    ) =>
+      `Uploaded: “${title}” — ${chapters} chapters, ${paragraphs} paragraphs.`,
+    uploadFailed: (error: string | number) => `Upload failed: ${error}`,
+    delete: "Delete",
+    deleteConfirm: "Remove this book from your library?",
+    deleteFailed: (error: string | number) => `Delete failed: ${error}`,
+  },
   auth: {
     brandKicker: "FolioThread",
     brandTitle: "Read with direction.",

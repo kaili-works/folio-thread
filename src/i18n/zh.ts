@@ -95,6 +95,58 @@ export const zh = {
         ? { value: (n / 10000).toFixed(1), unit: "万字" }
         : { value: n.toLocaleString("zh-CN"), unit: "字" },
   },
+  library: {
+    kicker: "你的书架",
+    title: "我的书库",
+    shelfMeta: (books: number, pending: number, words: string) =>
+      `${books} 本藏书 · ${pending} 本待补充 · 累计 ${words}`,
+    wordCount: (n: number) =>
+      n >= 10000
+        ? `${(n / 10000).toFixed(1)} 万字`
+        : `${n.toLocaleString("zh-CN")} 字`,
+    search: "搜索书库",
+    closeSearch: "关闭搜索",
+    searchPlaceholder: "搜索书名或作者",
+    noResults: "没有找到匹配的书。",
+    upload: "上传 EPUB",
+    uploadTitle: "上传一本 EPUB",
+    uploadLead:
+      "单本 ≤ 50MB · 目前仅支持 .epub；PDF / MOBI / AZW3 / TXT 等格式请先自行转换为 EPUB 再上传。",
+    uploadPrivacy:
+      "仅上传你有权使用的文件；非中文材料在阅读时会发送给第三方 AI 服务（DeepSeek）进行机器翻译。",
+    uploading: "上传解析中…",
+    chooseFile: "选择文件",
+    reselect: "重新选择",
+    picked: (name: string, size: string) => `已选择：${name}（${size}）`,
+    submit: "上传",
+    submitting: "解析中…",
+    shelfKicker: "书库",
+    pendingKicker: "待补充",
+    pendingBadge: "待补",
+    pendingHelp:
+      "这些阅读清单中的书还未上传书库。上传 EPUB 后到「主题与清单」点「刷新」可自动匹配。",
+    pendingFrom: (themes: string[]) => `来自主题：${themes.join("、")}`,
+    unknownAuthor: "未知作者",
+    expandAll: (n: number) => `展开全部 ${n} 本`,
+    collapse: "收起",
+    emptyTitle: "先上传一本 EPUB",
+    empty:
+      "书库还是空的。顺序是：创建主题 → 生成并确认清单 → 按清单上传 EPUB → 今日包每天自动生成。",
+    emptyLink: "去创建主题",
+    loading: "正在读取书库…",
+    pickFile: "请选择 EPUB 文件。",
+    duplicate: (title: string) =>
+      `这本书已在书库中：《${title}》，无需重复上传。`,
+    uploadSuccess: (
+      title: string,
+      chapters: number | string,
+      paragraphs: number | string,
+    ) => `上传完成：《${title}》，共 ${chapters} 章、${paragraphs} 段。`,
+    uploadFailed: (error: string | number) => `上传失败：${error}`,
+    delete: "删除",
+    deleteConfirm: "从书库删除这本书？",
+    deleteFailed: (error: string | number) => `删除失败：${error}`,
+  },
   auth: {
     brandKicker: "FolioThread",
     brandTitle: "页脉研读",

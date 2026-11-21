@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AppNav from "@/components/AppNav";
-import { copy } from "@/lib/copy";
+import { Icon } from "@/components/Icon";
+import { useT } from "@/i18n";
 
 type Doc = {
   id: string;
@@ -22,29 +23,64 @@ type PendingBook = {
   reason: string;
 };
 
+// 提示只存类型与参数，切换语言后会按当前语言重新渲染
+type Message =
+  | { kind: "pickFile" }
+  | { kind: "duplicate"; title: string }
+  | {
+      kind: "uploaded";
+      title: string;
+      chapters: number | string;
+      paragraphs: number | string;
+    }
+  | { kind: "uploadFailed"; error: string | number }
+  | { kind: "deleteFailed"; error: string | number };
+
 // 我的书库：所有登录用户共用同一套界面（上传 + 书库列表）。
 // v2 私有书库：每位用户只看到、只能操作自己的书。
 export default function LibraryPage() {
   const supabase = createClient();
+  const t = useT();
   const [userId, setUserId] = useState<string | null>(null);
   const [documents, setDocuments] = useState<Doc[]>([]);
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(
-    null,
-  );
+  const [message, setMessage] = useState<Message | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [coverUrls, setCoverUrls] = useState<Record<string, string>>({});
   const [pendingBooks, setPendingBooks] = useState<PendingBook[]>([]);
   // 首屏数据到齐前不渲染空状态，避免“先空后满”的闪烁
   const [loaded, setLoaded] = useState(false);
+  // 上传面板与搜索默认收起，由页头图标唤起
+  const [showUpload, setShowUpload] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
   // 两个列表默认只展示前 10 本，其余折叠
   const [showAllPending, setShowAllPending] = useState(false);
   const [showAllDocs, setShowAllDocs] = useState(false);
   const LIST_LIMIT = 10;
+
+  const q = query.trim().toLowerCase();
+  const docsFiltered = q
+    ? documents.filter((d) =>
+        `${d.title} ${d.author}`.toLowerCase().includes(q),
+      )
+    : documents;
+  const pendingFiltered = q
+    ? pendingBooks.filter((b) =>
+        `${b.title} ${b.author} ${b.themes.join(" ")}`
+          .toLowerCase()
+          .includes(q),
+      )
+    : pendingBooks;
+  const docsShown = showAllDocs ? docsFiltered : docsFiltered.slice(0, LIST_LIMIT);
   const pendingShown = showAllPending
-    ? pendingBooks
-    : pendingBooks.slice(0, LIST_LIMIT);
-  const docsShown = showAllDocs ? documents : documents.slice(0, LIST_LIMIT);
+    ? pendingFiltered
+    : pendingFiltered.slice(0, LIST_LIMIT);
+
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.focus();
+  }, [searchOpen]);
 
   // 待补充清单：清单里存在、但书库还没有的书
   async function loadPending() {
@@ -68,7 +104,7 @@ export default function LibraryPage() {
       .filter((p): p is string => !!p);
     if (paths.length === 0) {
       setCoverUrls({});
-      return;
+      return list;
     }
     const res = await fetch("/api/storage/sign", {
       method: "POST",
@@ -77,17 +113,23 @@ export default function LibraryPage() {
     });
     const json = await res.json().catch(() => ({}));
     setCoverUrls(json.urls ?? {});
+    return list;
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const u = data.session?.user;
       if (!u) {
+        setShowUpload(true);
         setLoaded(true);
         return;
       }
       setUserId(u.id);
       Promise.all([loadDocuments(u.id), loadPending()])
+        .then(([list]) => {
+          // 空书库时直接把上传面板展开，省一次点击
+          if (!list || list.length === 0) setShowUpload(true);
+        })
         // 任一请求失败也要放开门控，否则页面会永久停在加载态
         .catch(() => {})
         .then(() => setLoaded(true));
@@ -102,7 +144,7 @@ export default function LibraryPage() {
     const fileInput = form.elements.namedItem("file") as HTMLInputElement;
     const file = fileInput?.files?.[0];
     if (!file) {
-      setMessage({ text: copy.library.pickFile, ok: false });
+      setMessage({ kind: "pickFile" });
       return;
     }
     setUploading(true);
@@ -113,18 +155,13 @@ export default function LibraryPage() {
     setUploading(false);
     if (res.ok) {
       if (json.duplicate) {
-        setMessage({
-          text: copy.library.duplicate(json.document?.title),
-          ok: true,
-        });
+        setMessage({ kind: "duplicate", title: json.document?.title ?? "" });
       } else {
         setMessage({
-          text: copy.library.uploadSuccess(
-            json.document?.title,
-            json.chapter_count ?? "?",
-            json.paragraph_count ?? "?",
-          ),
-          ok: true,
+          kind: "uploaded",
+          title: json.document?.title ?? "",
+          chapters: json.chapter_count ?? "?",
+          paragraphs: json.paragraph_count ?? "?",
         });
       }
       form.reset();
@@ -134,21 +171,22 @@ export default function LibraryPage() {
         loadPending();
       }
     } else {
-      setMessage({ text: copy.library.uploadFailed(json.error ?? res.status), ok: false });
+      setMessage({ kind: "uploadFailed", error: json.error ?? res.status });
     }
   }
 
   async function handleDelete(docId: string) {
-    if (!window.confirm(copy.library.deleteConfirm)) return;
+    if (!window.confirm(t.library.deleteConfirm)) return;
     const res = await fetch(`/api/documents/${docId}`, { method: "DELETE" });
     if (res.ok) {
+      setMessage(null);
       if (userId) {
         loadDocuments(userId);
         loadPending();
       }
     } else {
       const json = await res.json().catch(() => ({}));
-      setMessage({ text: copy.library.deleteFailed(json.error ?? res.status), ok: false });
+      setMessage({ kind: "deleteFailed", error: json.error ?? res.status });
     }
   }
 
@@ -157,200 +195,233 @@ export default function LibraryPage() {
     0,
   );
 
+  const messageText = !message
+    ? null
+    : message.kind === "pickFile"
+      ? t.library.pickFile
+      : message.kind === "duplicate"
+        ? t.library.duplicate(message.title)
+        : message.kind === "uploaded"
+          ? t.library.uploadSuccess(
+              message.title,
+              message.chapters,
+              message.paragraphs,
+            )
+          : message.kind === "uploadFailed"
+            ? t.library.uploadFailed(message.error)
+            : t.library.deleteFailed(message.error);
+  const messageOk = message?.kind === "duplicate" || message?.kind === "uploaded";
+
+  const fileSize = selectedFile
+    ? selectedFile.size >= 1024 * 1024
+      ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`
+      : `${Math.max(1, Math.round(selectedFile.size / 1024))} KB`
+    : "";
+
   return (
     <>
       <AppNav />
       <div className="container app-main">
-        <div className="page-head">
-          <span className="kicker">Library</span>
-          <h1>我的书库</h1>
-        </div>
-
-        <div className="stat-strip">
-          <div className="cell">
-            <div className="k">已上传</div>
-            <div className="v">
-              {documents.length}
-              <small>本</small>
-            </div>
-          </div>
-          <div className="cell">
-            <div className="k">待补充</div>
-            <div className="v">
-              {pendingBooks.length}
-              <small>本</small>
-            </div>
-          </div>
-          <div className="cell">
-            <div className="k">累计字数</div>
-            <div className="v">
-              {totalWords >= 10000
-                ? (totalWords / 10000).toFixed(1)
-                : totalWords}
-              <small>{totalWords >= 10000 ? "万字" : "字"}</small>
-            </div>
-          </div>
-        </div>
-        <p className="stat-note">
-          书库只保存你上传的 EPUB；主题清单里缺失的书会列在下方「待补充」。
-        </p>
-
-        <form onSubmit={handleUpload} className="drop lib-upload">
-          <div className="ico">EPUB</div>
-          <div className="txt">
-            <p>{uploading ? "上传解析中…" : "上传一本 EPUB"}</p>
-            <small>
-              单本 ≤ 50MB · 目前仅支持 .epub；PDF / MOBI / AZW3 / TXT
-              等格式请先自行转换为 EPUB 再上传。
-            </small>
-            {selectedFile && (
-              <small className="picked">
-                已选择：{selectedFile.name}（
-                {selectedFile.size >= 1024 * 1024
-                  ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB`
-                  : `${Math.max(1, Math.round(selectedFile.size / 1024))} KB`}
-                ）
-              </small>
-            )}
-            <small>
-              仅上传你有权使用的文件；非中文材料在阅读时会发送给第三方 AI
-              服务（DeepSeek）进行机器翻译。
-            </small>
-            {message && (
-              <p
-                className={`message ${message.ok ? "ok" : "err"}`}
-                style={{ margin: "10px 0 0" }}
-              >
-                {message.text}
-              </p>
-            )}
-          </div>
-          <input
-            type="file"
-            name="file"
-            id="epub-file"
-            accept=".epub"
-            required
-            onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-          />
-          <label className="btn-line" htmlFor="epub-file">
-            {selectedFile ? "重新选择" : "选择文件"}
-          </label>
-          <button type="submit" disabled={uploading}>
-            {uploading ? "解析中…" : "上传"}
-          </button>
-        </form>
-
-        {!loaded && <div className="page-loading">正在读取书库…</div>}
-        <div
-          className={`lib-cols${pendingBooks.length > 0 ? " two" : ""}`}
-          style={{ display: loaded ? undefined : "none" }}
-        >
-        {pendingBooks.length > 0 && (
-          <section className="lib-section lib-pending">
-            <div className="card-head">
-              <span className="kicker">待补充 · {pendingBooks.length}</span>
-            </div>
-            <p className="sub" style={{ margin: "0 0 10px" }}>
-              {copy.library.pendingHelp}
+        <div className="page-head page-head-row lib-head">
+          <div>
+            <span className="kicker">{t.library.kicker}</span>
+            <h1>{t.library.title}</h1>
+            <p className="sub lib-meta">
+              {t.library.shelfMeta(
+                documents.length,
+                pendingBooks.length,
+                t.library.wordCount(totalWords),
+              )}
             </p>
-            <div className={`lib-sheet${showAllPending ? " scroll" : ""}`}>
-            {pendingShown.map((b) => (
-              <div className="book-row" key={`${b.title}|${b.author}`}>
-                <div className="cover pending">待补</div>
-                <div className="m">
-                  <div className="t">{b.title}</div>
-                  <div className="s">
-                    {b.author}
-                    {b.themes.length > 0
-                      ? ` · 来自主题：${b.themes.join("、")}`
-                      : ""}
-                  </div>
-                </div>
-              </div>
-            ))}
-            </div>
-            {pendingBooks.length > LIST_LIMIT && (
-              <button
-                type="button"
-                className="lib-more"
-                onClick={() => setShowAllPending((v) => !v)}
-              >
-                {showAllPending
-                  ? "收起"
-                  : `展开全部 ${pendingBooks.length} 本`}
-              </button>
-            )}
-          </section>
+          </div>
+          <div className="page-head-actions">
+            <button
+              className="icon-btn"
+              onClick={() => {
+                if (searchOpen) setQuery("");
+                setSearchOpen((v) => !v);
+              }}
+              title={searchOpen ? t.library.closeSearch : t.library.search}
+              aria-label={searchOpen ? t.library.closeSearch : t.library.search}
+              aria-expanded={searchOpen}
+            >
+              <Icon name="search" />
+            </button>
+            <button
+              className="icon-btn primary"
+              onClick={() => setShowUpload((v) => !v)}
+              title={t.library.upload}
+              aria-label={t.library.upload}
+              aria-expanded={showUpload}
+            >
+              <Icon name="upload" />
+            </button>
+          </div>
+        </div>
+
+        {searchOpen && (
+          <div className="lib-search">
+            <Icon name="search" />
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t.library.searchPlaceholder}
+              aria-label={t.library.searchPlaceholder}
+            />
+          </div>
         )}
 
-        <section className="lib-section">
-          <div className="card-head">
-            <span className="kicker">书库 · {documents.length}</span>
-          </div>
-          <p className="sub" style={{ margin: "0 0 10px" }}>
-            {copy.library.uploadedHelp}
+        {showUpload && (
+          <form onSubmit={handleUpload} className="drop lib-upload">
+            <div className="ico">EPUB</div>
+            <div className="txt">
+              <p>{uploading ? t.library.uploading : t.library.uploadTitle}</p>
+              <small>{t.library.uploadLead}</small>
+              {selectedFile && (
+                <small className="picked">
+                  {t.library.picked(selectedFile.name, fileSize)}
+                </small>
+              )}
+              <small>{t.library.uploadPrivacy}</small>
+            </div>
+            <input
+              type="file"
+              name="file"
+              id="epub-file"
+              accept=".epub"
+              required
+              onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
+            />
+            <label className="btn-line" htmlFor="epub-file">
+              {selectedFile ? t.library.reselect : t.library.chooseFile}
+            </label>
+            <button type="submit" disabled={uploading}>
+              {uploading ? t.library.submitting : t.library.submit}
+            </button>
+          </form>
+        )}
+
+        {messageText && (
+          <p className={`message lib-message ${messageOk ? "ok" : "err"}`}>
+            {messageText}
           </p>
+        )}
+
+        {!loaded && <div className="page-loading">{t.library.loading}</div>}
+
+        <section className="lib-section lib-shelf">
+          <div className="card-head">
+            <span className="kicker">
+              {t.library.shelfKicker} · {documents.length}
+            </span>
+          </div>
           {!loaded ? null : documents.length === 0 ? (
             <div className="lib-empty">
-              <h2>先上传一本 EPUB</h2>
-              <p>{copy.library.empty}</p>
+              <h2>{t.library.emptyTitle}</h2>
+              <p>{t.library.empty}</p>
               <Link href="/themes" className="btn-line btn-sm">
-                {copy.library.emptyLink}
+                {t.library.emptyLink}
               </Link>
             </div>
+          ) : docsFiltered.length === 0 ? (
+            <p className="lib-noresult">{t.library.noResults}</p>
           ) : (
             <>
-            <div className={`lib-sheet${showAllDocs ? " scroll" : ""}`}>
-            {docsShown.map((d) => (
-              <div className="book-row" key={d.id}>
-                <Link
-                  href={`/books/${d.id}`}
-                  className="cover"
-                  style={{ lineHeight: 0 }}
-                >
-                  {d.cover_url && coverUrls[d.cover_url] ? (
-                    <img
-                      src={coverUrls[d.cover_url]}
-                      alt={d.title}
-                      loading="lazy"
-                    />
-                  ) : (
-                    d.title.slice(0, 1)
-                  )}
-                </Link>
-                <div className="m">
-                  <Link href={`/books/${d.id}`} className="t">
-                    {d.title}
-                  </Link>
-                  <div className="s">
-                    {d.author || "未知作者"} · {d.language || "未知语言"} ·{" "}
-                    {(d.total_words_original ?? 0).toLocaleString("zh-CN")}{" "}
-                    字/词
-                  </div>
-                </div>
-                <button
-                  className="btn-danger btn-xs"
-                  onClick={() => handleDelete(d.id)}
-                >
-                  删除
-                </button>
+              <div className="lib-grid">
+                {docsShown.map((d, i) => (
+                  <article className="lib-card" key={d.id}>
+                    <Link
+                      href={`/books/${d.id}`}
+                      className={`lib-cover c${(i % 5) + 1}`}
+                      title={d.title}
+                    >
+                      {d.cover_url && coverUrls[d.cover_url] ? (
+                        <img
+                          src={coverUrls[d.cover_url]}
+                          alt={d.title}
+                          loading="lazy"
+                        />
+                      ) : (
+                        <span>{d.title.trim().slice(0, 1) || "?"}</span>
+                      )}
+                    </Link>
+                    <button
+                      className="icon-btn lib-del"
+                      onClick={() => handleDelete(d.id)}
+                      title={t.library.delete}
+                      aria-label={`${t.library.delete}：${d.title}`}
+                    >
+                      <Icon name="trash" />
+                    </button>
+                    <Link href={`/books/${d.id}`} className="t">
+                      {d.title}
+                    </Link>
+                    <div className="a">{d.author || t.library.unknownAuthor}</div>
+                  </article>
+                ))}
               </div>
-            ))}
-            </div>
-            {documents.length > LIST_LIMIT && (
-              <button
-                type="button"
-                className="lib-more"
-                onClick={() => setShowAllDocs((v) => !v)}
-              >
-                {showAllDocs ? "收起" : `展开全部 ${documents.length} 本`}
-              </button>
-            )}
+              {docsFiltered.length > LIST_LIMIT && (
+                <button
+                  type="button"
+                  className="lib-more"
+                  onClick={() => setShowAllDocs((v) => !v)}
+                >
+                  {showAllDocs
+                    ? t.library.collapse
+                    : t.library.expandAll(docsFiltered.length)}
+                </button>
+              )}
             </>
           )}
         </section>
-        </div>
+
+        {pendingBooks.length > 0 && (
+          <section className="lib-section lib-pending">
+            <div className="card-head">
+              <span className="kicker">
+                {t.library.pendingKicker} · {pendingBooks.length}
+              </span>
+            </div>
+            <p className="sub">{t.library.pendingHelp}</p>
+            {pendingFiltered.length === 0 ? (
+              <p className="lib-noresult">{t.library.noResults}</p>
+            ) : (
+              <>
+                <div className={`lib-sheet${showAllPending ? " scroll" : ""}`}>
+                  {pendingShown.map((b) => (
+                    <div className="book-row" key={`${b.title}|${b.author}`}>
+                      <div className="cover pending">
+                        {t.library.pendingBadge}
+                      </div>
+                      <div className="m">
+                        <div className="t">{b.title}</div>
+                        <div className="s">
+                          {b.author}
+                          {b.themes.length > 0
+                            ? ` · ${t.library.pendingFrom(b.themes)}`
+                            : ""}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {pendingFiltered.length > LIST_LIMIT && (
+                  <button
+                    type="button"
+                    className="lib-more"
+                    onClick={() => setShowAllPending((v) => !v)}
+                  >
+                    {showAllPending
+                      ? t.library.collapse
+                      : t.library.expandAll(pendingFiltered.length)}
+                  </button>
+                )}
+              </>
+            )}
+          </section>
+        )}
       </div>
     </>
   );
