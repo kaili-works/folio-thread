@@ -19,7 +19,7 @@ export const en: Dict = {
   themes: {
     kicker: "Themes & Lists",
     title: "Themes & reading lists",
-    newTheme: "New research theme",
+    newTheme: "New theme",
     newThemeClose: "Close form",
     newThemeHint: "Describe what you want to study in one sentence",
     nameLabel: "Theme name",
@@ -79,8 +79,6 @@ export const en: Dict = {
     wereadChip: "WeRead",
     readingPath: "Reading Path",
     readingList: "Reading List",
-    checkWeread: "Check WeRead",
-    checkingWeread: "Checking…",
     genPoints: "Key points",
     genPointsBusy: "Generating…",
     stateReading: "Reading",
@@ -117,7 +115,7 @@ export const en: Dict = {
     confirmDeleteOk: "Delete",
     adjustSummary: "Adjust the list in a sentence",
     adjustPlaceholder:
-      "One-line hint, e.g. more theory / easier / more practical",
+      "One-line hint, e.g. more theoretical, easier, or more practical",
     regenerate: "Regenerate",
     regenerating: "Generating…",
     apply: "Apply",
@@ -137,7 +135,7 @@ export const en: Dict = {
     statusHelp:
       "Mark themes you want to read first as Priority, and pause others as Shelved. Shelved themes won't enter today's pack. Regenerate in Today after changing.",
     emptyThemes:
-      "No themes yet. Hit “New research theme” in the top-right to start building a list.",
+      "No themes yet. Hit “New theme” in the top-right to start building a list.",
     emptyList:
       "Nothing here yet. AI will recommend 5–6 books based on your description, ordered from easy to hard; you can edit them one by one afterwards.",
     listNoBooks:
@@ -194,11 +192,6 @@ export const en: Dict = {
       `Couldn't save domain: ${error}`,
     domainUpdated: (domain: string) => `Domain set to “${domain}”`,
     uncategorized: "Uncategorized",
-    wereadSearching: "Checking WeRead…",
-    wereadFound: (n: number) => `Found ${n} readable on WeRead`,
-    wereadNoNeed: "No books need checking",
-    wereadNotFound: "These books aren't available on WeRead yet",
-    wereadFailed: (error: string | number) => `WeRead check failed: ${error}`,
   },
   today: {
     title: "Today's reading",

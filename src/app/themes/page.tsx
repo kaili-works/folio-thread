@@ -87,7 +87,6 @@ export default function ThemesPage() {
     Record<string, { done: number; total: number; current: number }>
   >({});
   const [genPoints, setGenPoints] = useState(false);
-  const [wereadBusy, setWereadBusy] = useState(false);
   const syncGuard = useRef(false);
   // 每个清单只自动补一次知识点，避免失败后反复请求
   const autoPointsRef = useRef<Set<string>>(new Set());
@@ -537,32 +536,6 @@ export default function ThemesPage() {
       setRegenMessage(t.themes.regenUndone);
     } else {
       setRegenMessage(t.themes.regenUndoFailed(json.error ?? res.status));
-    }
-  }
-
-  // 对「待补充」的书查一次微信读书，命中后写入阅读链接
-  async function enrichWeread() {
-    if (!listId) return;
-    setWereadBusy(true);
-    setMessage(t.themes.wereadSearching);
-    const res = await fetch("/api/lists/weread-enrich", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ list_id: listId }),
-    });
-    const json = await res.json().catch(() => ({}));
-    setWereadBusy(false);
-    if (res.ok) {
-      if (activeTheme) await loadList(activeTheme.id);
-      if (json.updated > 0) {
-        setMessage(t.themes.wereadFound(json.updated));
-      } else if (json.checked === 0) {
-        setMessage(t.themes.wereadNoNeed);
-      } else {
-        setMessage(t.themes.wereadNotFound);
-      }
-    } else {
-      setMessage(t.themes.wereadFailed(json.error ?? res.status));
     }
   }
 
@@ -1302,21 +1275,6 @@ export default function ThemesPage() {
                   >
                     {t.themes.refresh}
                   </button>
-                  {items.some(
-                    (it) =>
-                      it.availability === "pending_supplement" &&
-                      !it.candidate_metadata?.weread,
-                  ) && (
-                    <button
-                      className="btn-quiet btn-sm"
-                      onClick={() => enrichWeread()}
-                      disabled={wereadBusy}
-                    >
-                      {wereadBusy
-                        ? t.themes.checkingWeread
-                        : t.themes.checkWeread}
-                    </button>
-                  )}
                   {hasMissingPoints && (
                     <button
                       className="btn-quiet btn-sm"
