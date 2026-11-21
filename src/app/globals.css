@@ -2074,15 +2074,9 @@ details.plain ul {
 
 .list-item .manage {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   flex-wrap: wrap;
   margin-top: 8px;
-  opacity: 0.75;
-  transition: opacity 0.15s ease;
-}
-
-.list-item:hover .manage {
-  opacity: 1;
 }
 
 /* 换一本 / 删除的原地二次确认（替代浏览器原生 confirm） */
@@ -7098,34 +7092,33 @@ body:has(.auth-split) {
 .themes-page .manage-row {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex-wrap: wrap;
   margin: 4px 0 0 31px;
 }
 
-/* 书籍操作：图标按钮，说明文字见下方「清单操作说明」 */
+/* 书籍操作：按预览稿的 btn.line.icon 样式，28px 描边方钮 */
 .themes-page .item-act {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 0;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  border: 1px solid var(--ft-ink);
+  border-radius: 7px;
   background: transparent;
-  color: var(--ft-muted);
+  color: var(--ft-ink);
   cursor: pointer;
 }
 
 .themes-page .item-act svg {
-  width: 14px;
-  height: 14px;
+  width: 15px;
+  height: 15px;
 }
 
 .themes-page .item-act:hover:not(:disabled) {
   background: #f1f0e9;
-  color: var(--ft-ink);
 }
 
 .themes-page .item-act:disabled {
@@ -7133,7 +7126,18 @@ body:has(.auth-split) {
   cursor: default;
 }
 
+.themes-page .item-act.quiet {
+  border-color: transparent;
+  color: var(--ft-muted);
+}
+
+.themes-page .item-act.quiet:hover:not(:disabled) {
+  background: transparent;
+  color: var(--ft-ink);
+}
+
 .themes-page .item-act.danger {
+  border-color: transparent;
   color: #b91c1c;
 }
 
