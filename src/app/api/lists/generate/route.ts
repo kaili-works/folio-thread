@@ -179,6 +179,7 @@ export async function POST(request: Request) {
         reading_list_id: list.id,
         order_index: i + 1,
         reason: m.recommendation.reason,
+        lang: locale,
         estimated_minutes: 30,
         source: m.book ? "library" : "ai_web",
         status: "unread",
@@ -211,7 +212,7 @@ export async function POST(request: Request) {
     const { data: savedItems } = await supabase
       .from("list_items")
       .select(
-        "id, order_index, reason, availability, status, locked, document_id, candidate_metadata",
+        "id, order_index, reason, lang, availability, status, locked, document_id, candidate_metadata",
       )
       .eq("reading_list_id", list.id)
       .is("deleted_at", null)

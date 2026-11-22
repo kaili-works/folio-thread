@@ -175,6 +175,7 @@ export async function POST(request: Request) {
       .from("list_items")
       .update({
         reason: rec.reason || item.reason,
+        lang: locale,
         source: matched ? "library" : "ai_web",
         status: "unread",
         locked: false,

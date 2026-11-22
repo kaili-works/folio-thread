@@ -250,6 +250,7 @@ export async function PATCH(request: Request) {
     const body = await request.json();
     const listId = body?.list_id as string | undefined;
     if (!listId) throw new ApiError(400, "缺少清单");
+    const locale = await getRequestLocale();
 
     // 撤销：恢复被软删的旧项，并软删新插入项
     if (body?.undo) {
@@ -314,6 +315,7 @@ export async function PATCH(request: Request) {
       reading_list_id: listId,
       order_index: next + i,
       reason: n.reason,
+      lang: locale,
       estimated_minutes: n.estimated_minutes ?? 30,
       source: n.source ?? "ai_web",
       status: "unread",

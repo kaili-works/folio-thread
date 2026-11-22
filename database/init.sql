@@ -1,6 +1,6 @@
 -- 由 scripts/build-init-sql.mjs 自动生成，请勿手动编辑。
 -- 用法：在 Supabase Dashboard -> SQL Editor 中整段执行。
--- 源文件：0001_schema.sql, 0002_images.sql, 0003_semantic.sql, 0004_toc_depth.sql, 0005_reading_speed.sql, 0006_private_library.sql, 0007_theme_status.sql, 0008_theme_domain.sql
+-- 源文件：0001_schema.sql, 0002_images.sql, 0003_semantic.sql, 0004_toc_depth.sql, 0005_reading_speed.sql, 0006_private_library.sql, 0007_theme_status.sql, 0008_theme_domain.sql, 0009_list_item_lang.sql
 -- 重新生成：npm run db:init
 
 -- ============================================================
@@ -786,3 +786,16 @@ alter table public.themes
       '其他'
     )
   );
+
+-- ============================================================
+-- 0009_list_item_lang.sql
+-- ============================================================
+
+-- 推荐理由的语言：记录生成时的界面语言，便于界面语言不一致时提示重写。
+-- 历史理由全部由中文提示词生成，回填 zh；之后写入时按请求语言打标。
+alter table public.list_items
+  add column if not exists lang text;
+
+update public.list_items
+  set lang = 'zh'
+  where lang is null and reason is not null;

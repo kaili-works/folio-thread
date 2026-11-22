@@ -44,6 +44,8 @@ const EN: Record<string, string> = {
   "生成书单过于频繁，请稍后再试": "Too many list generations. Please try again later.",
   "重新生成过于频繁，请稍后再试": "Too many regenerations. Please try again later.",
   "换一本过于频繁，请稍后再试": "Too many swaps. Please try again later.",
+  "重写理由过于频繁，请稍后再试":
+    "Too many reason rewrites. Please try again later.",
   "操作过于频繁，请稍后再试": "Too many requests. Please try again later.",
   "提炼过于频繁，请稍后再试": "Too many extraction requests. Please try again later.",
   "分类请求过于频繁，请稍后再试":
@@ -55,6 +57,8 @@ const EN: Record<string, string> = {
 
   // AI 相关
   "未配置 DEEPSEEK_API_KEY": "DEEPSEEK_API_KEY is not configured",
+  "未配置 DEEPSEEK_API_KEY（见 README 的 AI 配置）":
+    "DEEPSEEK_API_KEY is not configured (see the AI setup in README)",
   "未配置 DEEPSEEK_API_KEY，无法生成清单（见 README 的 AI 配置）":
     "DEEPSEEK_API_KEY is not configured, so no list can be generated (see the AI setup in README)",
   "未配置 DEEPSEEK_API_KEY，无法重新生成清单（见 README 的 AI 配置）":
@@ -67,6 +71,7 @@ const EN: Record<string, string> = {
   "语音合成结果为空": "Speech synthesis returned nothing",
   "生成的清单缺少主题名称": "The generated list has no theme name",
   "生成的清单没有书目": "The generated list has no books",
+  "清单项缺少书名": "The list item has no book title",
   "还没有清单，先点「生成清单」": "No list yet — generate one first",
 
   // 动态消息的前缀（「前缀：详情」写法）
@@ -81,6 +86,7 @@ const EN: Record<string, string> = {
   "删除旧项失败：": "Failed to delete old items: ",
   "恢复旧项失败：": "Failed to restore old items: ",
   "换书失败：": "Failed to swap book: ",
+  "更新理由失败：": "Failed to update the reason: ",
   "保存笔记失败：": "Failed to save note: ",
   "保存阅读速度失败：": "Failed to save reading speed: ",
   "读取清单失败：": "Failed to load list: ",

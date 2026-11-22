@@ -102,6 +102,8 @@ type ListItem = {
   id: string;
   order_index: number;
   reason: string;
+  // 推荐理由写入时的界面语言；与当前语言不一致时提示重写
+  lang?: string | null;
   availability: string;
   status: string;
   locked: boolean;
@@ -138,6 +140,7 @@ export default function ThemesPage() {
   const [listStatus, setListStatus] = useState<string>("draft");
   const [generating, setGenerating] = useState(false);
   const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [rewritingId, setRewritingId] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
   const listSectionRef = useRef<HTMLElement | null>(null);
   const [message, setMessage] = useState("");
@@ -276,7 +279,7 @@ export default function ThemesPage() {
       supabase
         .from("list_items")
         .select(
-          "id, order_index, reason, availability, status, locked, document_id, candidate_metadata",
+          "id, order_index, reason, lang, availability, status, locked, document_id, candidate_metadata",
         )
         .eq("reading_list_id", list.id)
         .is("deleted_at", null)
@@ -657,6 +660,36 @@ export default function ThemesPage() {
       setMessage(t.themes.replaced(json.title ?? ""));
     } else {
       setMessage(t.themes.replaceFailed(json.error ?? res.status));
+    }
+  }
+
+  // 存量理由不是当前界面语言时，按当前语言重写（书不变）
+  async function rewriteReason(itemId: string) {
+    if (rewritingId) return;
+    setRewritingId(itemId);
+    setMessage("");
+    const res = await fetch("/api/lists/item-reason", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ item_id: itemId }),
+    });
+    const json = await res.json().catch(() => ({}));
+    setRewritingId(null);
+    if (res.ok) {
+      setItems((prev) =>
+        prev.map((it) =>
+          it.id === itemId
+            ? {
+                ...it,
+                reason: json.reason ?? it.reason,
+                lang: json.lang ?? locale,
+              }
+            : it,
+        ),
+      );
+      setMessage(t.themes.reasonRewritten);
+    } else {
+      setMessage(t.themes.reasonRewriteFailed(json.error ?? res.status));
     }
   }
 
@@ -1689,6 +1722,20 @@ export default function ThemesPage() {
                               }
                             >
                               {it.reason}
+                            </p>
+                          )}
+                          {it.reason && it.lang && it.lang !== locale && (
+                            <p className="reason-lang">
+                              <span>{t.themes.reasonOtherLanguage}</span>
+                              <button
+                                className="reason-rewrite"
+                                onClick={() => rewriteReason(it.id)}
+                                disabled={rewritingId !== null}
+                              >
+                                {rewritingId === it.id
+                                  ? t.themes.rewritingReason
+                                  : t.themes.rewriteReason}
+                              </button>
                             </p>
                           )}
                           <div className="manage">
