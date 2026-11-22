@@ -205,4 +205,6 @@ Every change is checked with `tsc`, `next build` and the HTTP smoke suite before
 
 Code is released under MIT; see [LICENSE](LICENSE). Third-party background music is not included; sources and licences are in [NOTICE](NOTICE). The fallback audio in the repository is synthesized by `scripts/make_audio.py` and released under CC0.
 
+The MIT licence covers the source code only. It does not grant rights to the "FolioThread" / "页脉研读" names, logo or icons. Forks and modified versions are welcome — please use your own name and branding, and do not present a modified version as the official project.
+
 Release history: [CHANGELOG.md](CHANGELOG.md). Security policy: [SECURITY.md](SECURITY.md).

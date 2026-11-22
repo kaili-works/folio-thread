@@ -205,4 +205,6 @@ npm run import -- ./path/to/book.epub
 
 代码以 MIT 发布，见 [LICENSE](LICENSE)。第三方背景音乐不入库，来源与许可见 [NOTICE](NOTICE)；仓库内的兜底音频由 `scripts/make_audio.py` 合成，以 CC0 发布。
 
+MIT 只授权源代码，不包含「FolioThread」/「页脉研读」的名称、标识与图标。欢迎 fork 与修改，但请使用自己的名称与品牌，不要把修改版当作官方版本发布。
+
 版本记录见 [CHANGELOG.md](CHANGELOG.md)，安全问题报告方式见 [SECURITY.md](SECURITY.md)。
