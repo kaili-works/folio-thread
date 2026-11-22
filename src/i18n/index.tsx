@@ -9,15 +9,14 @@ import {
 } from "react";
 import { zh } from "./zh";
 import { en } from "./en";
+import { LOCALE_COOKIE, type Locale } from "./locale";
 
-export type Locale = "zh" | "en";
+export type { Locale };
 
 // 以中文文案为结构基准：en.ts 必须与它同构。
 export type Dict = typeof zh;
 
 export const dictionaries: Record<Locale, Dict> = { zh, en };
-
-const STORAGE_KEY = "locale";
 
 interface I18nValue {
   locale: Locale;
@@ -27,24 +26,18 @@ interface I18nValue {
 
 const I18nContext = createContext<I18nValue | null>(null);
 
-function readStoredLocale(): Locale {
-  try {
-    return localStorage.getItem(STORAGE_KEY) === "en" ? "en" : "zh";
-  } catch {
-    return "zh";
-  }
-}
-
 /**
- * 语言上下文。首屏固定渲染中文（与服务端输出一致，避免 hydration 不匹配），
- * 挂载后再读取本地偏好切换。
+ * 语言上下文。初始语言由服务端根据 cookie / Accept-Language 算好传进来，
+ * 因此首屏 HTML、<html lang> 与客户端首帧是同一个语言，不会闪一下再切换。
  */
-export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>("zh");
-
-  useEffect(() => {
-    setLocaleState(readStoredLocale());
-  }, []);
+export function I18nProvider({
+  initialLocale,
+  children,
+}: {
+  initialLocale: Locale;
+  children: React.ReactNode;
+}) {
+  const [locale, setLocaleState] = useState<Locale>(initialLocale);
 
   useEffect(() => {
     document.documentElement.lang = locale === "en" ? "en" : "zh-CN";
@@ -52,8 +45,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
+    // cookie 是唯一事实源：服务端也要用它渲染首屏；一年有效，刷新后仍保持。
     try {
-      localStorage.setItem(STORAGE_KEY, next);
+      document.cookie = `${LOCALE_COOKIE}=${next};path=/;max-age=31536000;samesite=lax`;
     } catch {
       // 隐私模式下写入失败，仅影响下次访问的默认语言
     }
