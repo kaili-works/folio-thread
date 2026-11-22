@@ -779,8 +779,34 @@ button:disabled {
   flex-shrink: 0;
 }
 
-.reader-nav-arrow {
-  display: none;
+/* 阅读器工具栏与页脚翻页：纯图标按钮 */
+.reader-mini .ic,
+.reader-nav-btn .ic {
+  width: 16px;
+  height: 16px;
+}
+
+.reader-mini-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+/* 纯图标小按钮：与 btn-sm 搭配使用 */
+.btn-sm.icon-only {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+}
+
+.btn-sm.icon-only .ic {
+  width: 16px;
+  height: 16px;
 }
 
 @media (max-width: 768px) {
@@ -809,14 +835,6 @@ button:disabled {
 
   .reader-content {
     padding: 20px 20px 96px;
-  }
-
-  .reader-nav-text {
-    display: none;
-  }
-
-  .reader-nav-arrow {
-    display: inline;
   }
 
   .reader-nav-btn {
@@ -2614,6 +2632,40 @@ details.plain ul {
   white-space: nowrap;
 }
 
+/* 书内笔记的编辑 / 删除：纯图标小按钮 */
+.note-act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #9aa192;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.note-act .ic {
+  width: 14px;
+  height: 14px;
+}
+
+.note-act:hover {
+  background: #f1f3e4;
+  color: #26281f;
+}
+
+.note-act.danger {
+  color: #b91c1c;
+}
+
+.note-act.danger:hover {
+  background: #fdf0ee;
+}
+
 /* ===== 今日页：累计阅读简表（与书库统计同款） ===== */
 .today-stats-link {
   display: block;
@@ -2747,6 +2799,25 @@ details.plain ul {
 .tts-controls .btn-line {
   flex: 1;
   text-align: center;
+}
+
+/* 听书播放控制：纯图标 */
+.tts-controls .tts-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  padding: 0;
+}
+
+.tts-controls .tts-icon.play {
+  width: 56px;
+}
+
+.tts-controls .tts-icon .ic {
+  width: 16px;
+  height: 16px;
 }
 
 .tts-fields {
@@ -6687,11 +6758,22 @@ body:has(.auth-split) {
   padding: 0 0 10px 14px;
 }
 
+.themes-page .rail-item .acts {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+
 .themes-page .rail-item .acts .domain-select {
-  width: 100%;
-  margin: 0 0 4px;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  margin: 0;
   padding: 3px 6px;
   font-size: 11px;
+}
+
+.themes-page .rail-item .acts .item-act {
+  flex: none;
 }
 
 .themes-page .rail-new {
@@ -7121,7 +7203,7 @@ body:has(.auth-split) {
   border: 1px solid #dde5d6;
   border-radius: 6px;
   background: #f6f7ea;
-  color: var(--ft-muted);
+  color: #9aa192;
   cursor: pointer;
 }
 
@@ -7146,6 +7228,13 @@ body:has(.auth-split) {
 
 .themes-page .item-act.danger:hover:not(:disabled) {
   background: #fdf0ee;
+}
+
+/* 清单右侧的动作按钮统一宽度，避免「去微信读书阅读」比「去上传」宽出一截 */
+.themes-page .list-item .side .link-btn {
+  width: 116px;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .themes-page .confirm-inline {
@@ -7338,5 +7427,28 @@ body:has(.auth-split) {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* 今日包规则说明：跟在每日预算下方，替代原来的跳转按钮 */
+.themes-page .sheet-rule {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* 路径模式右侧状态组：已上传与待补充对齐到同一列 */
+.themes-page .node-end {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 侧栏主题操作图标按钮的激活态（优先） */
+.themes-page .item-act.on {
+  color: var(--ft-ink);
+  border-color: #c9d6bd;
+  background: #eef3e6;
+}
+
 
 

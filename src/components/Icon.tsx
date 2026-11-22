@@ -21,9 +21,11 @@ export type IconName =
   | "lock"
   | "shelve"
   | "trash"
+  | "pencil"
   | "textminus"
   | "textplus"
   | "back"
+  | "next"
   | "plus"
   | "list"
   | "path"
@@ -56,9 +58,11 @@ export function IconSprite() {
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="1.5" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></symbol>
       <symbol id="i-shelve" viewBox="0 0 24 24"><path d="M4 5h16v4H4z" /><path d="M5 9v10h14V9" /><path d="M10 13h4" /></symbol>
       <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16" /><path d="M9 7V5h6v2" /><path d="M6 7l1 13h10l1-13" /><path d="M10 11v6M14 11v6" /></symbol>
+      <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4 20h4l10-10-4-4L4 16v4Z" /><path d="m14 6 4 4" /></symbol>
       <symbol id="i-textminus" viewBox="0 0 24 24"><path d="M4 18 9 6l5 12" /><path d="M6.2 14h5.6" /><path d="M16 12h5" /></symbol>
       <symbol id="i-textplus" viewBox="0 0 24 24"><path d="M4 18 9 6l5 12" /><path d="M6.2 14h5.6" /><path d="M16 12h5M18.5 9.5v5" /></symbol>
       <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></symbol>
+      <symbol id="i-next" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" /></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
       <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></symbol>
       <symbol id="i-path" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2" /><circle cx="18" cy="12" r="2" /><circle cx="8" cy="19" r="2" /><path d="M8 6h6a4 4 0 0 1 0 8h-4a4 4 0 0 0 0 8" /></symbol>
@@ -73,7 +77,7 @@ export function IconSprite() {
 
 export function Icon({
   name,
-  size,
+  size = 16,
   className,
 }: {
   name: IconName;
