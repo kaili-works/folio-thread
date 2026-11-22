@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "@/i18n";
+import { Icon } from "@/components/Icon";
 
 type Segment = { id: string; text: string };
 
@@ -39,6 +41,7 @@ type MusicTrack = "off" | "rain" | "piano" | "local";
 // 注意：浏览器语音必须在点击的同一事件里调用 speak()，
 // 否则安卓 Chrome 会静默拒绝播放（表现为「没有声音」）。
 export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: Props) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [idx, setIdx] = useState(0);
@@ -150,7 +153,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: seg.text, voice, rate }),
       });
-      if (!res.ok) throw new Error("语音合成失败");
+      if (!res.ok) throw new Error(t.audio.synthFailed);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       cacheRef.current.set(key, url);
@@ -274,7 +277,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
       }
       const synth = window.speechSynthesis;
       if (!synth) {
-        setNotice("当前浏览器不支持朗读");
+        setNotice(t.audio.unsupported);
         stopAll();
         return;
       }
@@ -287,7 +290,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
       };
       utter.onerror = (e) => {
         if (e.error === "interrupted" || e.error === "canceled") return;
-        setNotice("系统语音无法播放，请检查手机的文字转语音设置");
+        setNotice(t.audio.systemFailed);
         stopAll();
       };
       idxRef.current = i;
@@ -338,7 +341,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
           // 云端失败：切回系统语音，并继续当前段
           setProvider("none");
           setLoading(false);
-          setNotice("云端语音不可用，已切换本地语音");
+          setNotice(t.audio.cloudFallback);
           if (run === runRef.current) speakBrowser(i);
         });
     },
@@ -427,7 +430,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
           setOpen(true);
         }}
       >
-        听书
+        {t.audio.open}
       </button>
 
       {open && (
@@ -435,16 +438,16 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
           <div className="tts-head">
             <span className="kicker">LISTEN</span>
             <button type="button" className="tts-close" onClick={close}>
-              收起
+              {t.audio.collapse}
             </button>
           </div>
 
           <div className="tts-title">{chapterTitle}</div>
           <div className="tts-pos">
-            第 {idx + 1} / {segments.length} 段
-            {loading && <span className="tts-hint"> · 准备中…</span>}
+            {t.audio.position(idx + 1, segments.length)}
+            {loading && <span className="tts-hint"> · {t.audio.preparing}</span>}
             {provider === "none" && (
-              <span className="tts-hint"> · 本地语音</span>
+              <span className="tts-hint"> · {t.audio.localVoice}</span>
             )}
             {notice && <span className="tts-hint"> · {notice}</span>}
           </div>
@@ -452,28 +455,38 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
           <div className="tts-controls">
             <button
               type="button"
-              className="btn-line btn-sm"
+              className="btn-line btn-sm tts-icon"
+              aria-label={t.audio.prevSegment}
+              title={t.audio.prevSegment}
               onClick={() => jump(-1)}
               disabled={idx === 0}
             >
-              上一段
-            </button>
-            <button type="button" className="btn btn-sm" onClick={togglePlay}>
-              {playing ? "暂停" : "播放"}
+              <Icon name="back" />
             </button>
             <button
               type="button"
-              className="btn-line btn-sm"
+              className="btn btn-sm tts-icon play"
+              aria-label={playing ? t.audio.pause : t.audio.play}
+              title={playing ? t.audio.pause : t.audio.play}
+              onClick={togglePlay}
+            >
+              <Icon name={playing ? "pause" : "play"} />
+            </button>
+            <button
+              type="button"
+              className="btn-line btn-sm tts-icon"
+              aria-label={t.audio.nextSegment}
+              title={t.audio.nextSegment}
               onClick={() => jump(1)}
               disabled={idx >= segments.length - 1}
             >
-              下一段
+              <Icon name="next" />
             </button>
           </div>
 
           <div className="tts-fields">
             <label className="tts-field">
-              <span>音色</span>
+              <span>{t.audio.voice}</span>
               <select
                 value={voice}
                 onChange={(e) => {
@@ -488,14 +501,14 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
               >
                 {voices.map((v) => (
                   <option key={v.id} value={v.id}>
-                    {v.name}
+                    {v.id === "baidu-female" ? t.audio.fallbackVoice : v.name}
                   </option>
                 ))}
               </select>
             </label>
 
             <label className="tts-field">
-              <span>语速 {rate.toFixed(1)}×</span>
+              <span>{t.audio.rate(rate.toFixed(1))}</span>
               <input
                 type="range"
                 min={0.6}
@@ -515,7 +528,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
 
           <div className="tts-fields">
             <label className="tts-field">
-              <span>背景音乐</span>
+              <span>{t.audio.music}</span>
               <select
                 value={music}
                 onChange={(e) => {
@@ -527,11 +540,13 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
                   setMusic(next);
                 }}
               >
-                <option value="off">关闭</option>
-                <option value="rain">雨声 / 白噪</option>
-                <option value="piano">极简钢琴</option>
+                <option value="off">{t.audio.musicOff}</option>
+                <option value="rain">{t.audio.musicRain}</option>
+                <option value="piano">{t.audio.musicPiano}</option>
                 <option value="local">
-                  {localTrack ? `本地：${localTrack.name}` : "本地音乐…"}
+                  {localTrack
+                    ? t.audio.localTrack(localTrack.name)
+                    : t.audio.localMusic}
                 </option>
               </select>
               <input
@@ -551,7 +566,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
             </label>
 
             <label className="tts-field">
-              <span>音乐音量 {Math.round((musicVolume / 0.2) * 100)}%</span>
+              <span>{t.audio.musicVolume(Math.round((musicVolume / 0.2) * 100))}</span>
               <input
                 type="range"
                 min={0}

@@ -4,9 +4,10 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { copy } from "@/lib/copy";
+import { useI18n } from "@/i18n";
 import Guide from "@/components/Guide";
 import AudioReader from "@/components/AudioReader";
+import { Icon } from "@/components/Icon";
 import {
   getCachedChapter,
   queueComplete,
@@ -41,6 +42,7 @@ function getQueryParams() {
 
 export default function BookReader() {
   const { id } = useParams<{ id: string }>();
+  const { locale, t } = useI18n();
   const supabase = createClient();
 
   const [doc, setDoc] = useState<any>(null);
@@ -57,6 +59,11 @@ export default function BookReader() {
   const [slowLoad, setSlowLoad] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [offline, setOffline] = useState(false);
+
+  // 译文语言跟随界面语言：切换后清空旧译文，避免英文界面显示中文译文
+  useEffect(() => {
+    setTranslations({});
+  }, [locale]);
 
   // 笔记
   const [annotations, setAnnotations] = useState<Record<string, any>>({});
@@ -254,19 +261,19 @@ export default function BookReader() {
         if (!res.ok) {
           const msg = typeof json.error === "string" ? json.error : "";
           setTranslateError(
-            msg === "未配置 DEEPSEEK_API_KEY"
-              ? "未配置 DEEPSEEK_API_KEY，翻译功能不可用（见 README 的 AI 配置）"
-              : msg || copy.reader.translateFailed,
+            msg.includes("DEEPSEEK_API_KEY")
+              ? t.reader.noApiKey
+              : msg || t.reader.translateFailed,
           );
           break;
         }
       }
       setTranslations(merged);
       // 部分或全部段落翻译失败时，服务端返回的是原文，明确告诉用户
-      if (failed > 0) setTranslateError(copy.reader.translateFailed);
+      if (failed > 0) setTranslateError(t.reader.translateFailed);
     } catch {
       // 翻译失败：保持原文显示
-      setTranslateError(copy.reader.translateFailed);
+      setTranslateError(t.reader.translateFailed);
     }
     setTranslating(false);
   }
@@ -467,7 +474,7 @@ export default function BookReader() {
     });
     if (res.status === 401) {
       await supabase.auth.signOut();
-      setNoteMessage(copy.reader.sessionExpired);
+      setNoteMessage(t.reader.sessionExpired);
       setTimeout(() => {
         window.location.href = "/";
       }, 1200);
@@ -485,9 +492,9 @@ export default function BookReader() {
           json.annotation,
         ];
       }
-      setNoteMessage(copy.reader.noteSaved);
+      setNoteMessage(t.reader.noteSaved);
     } else {
-      setNoteMessage(copy.reader.noteFailed(json.error ?? res.status));
+      setNoteMessage(t.reader.noteFailed(json.error ?? res.status));
     }
   }
 
@@ -502,7 +509,7 @@ export default function BookReader() {
     setChapterCompleted(true);
     setCompletedChapters((prev) => new Set(prev).add(chapterId));
     setCompleteMessage(
-      isOffline ? copy.reader.offlineSaved : copy.reader.chapterCompleted,
+      isOffline ? t.reader.offlineSaved : t.reader.chapterCompleted,
     );
     setCompleting(true);
 
@@ -533,7 +540,7 @@ export default function BookReader() {
       });
       if (res.status === 401) {
         await supabase.auth.signOut();
-        setCompleteMessage(copy.reader.sessionExpired);
+        setCompleteMessage(t.reader.sessionExpired);
         setTimeout(() => {
           window.location.href = "/";
         }, 1200);
@@ -541,14 +548,14 @@ export default function BookReader() {
       }
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
-        if (json.bookCompleted) setCompleteMessage(copy.reader.bookCompleted);
+        if (json.bookCompleted) setCompleteMessage(t.reader.bookCompleted);
       } else {
         rollback();
-        setCompleteMessage(copy.reader.completeFailed(json.error ?? res.status));
+        setCompleteMessage(t.reader.completeFailed(json.error ?? res.status));
       }
     } catch {
       rollback();
-      setCompleteMessage(copy.reader.completeFailed("network"));
+      setCompleteMessage(t.reader.completeFailed("network"));
     } finally {
       setCompleting(false);
     }
@@ -577,14 +584,14 @@ export default function BookReader() {
     <div className="reader">
       <aside className={`reader-sidebar ${sidebarOpen ? "open" : ""}`}>
         <Link href="/today" className="reader-back">
-          ← 今日阅读包
+          {t.reader.backToday}
         </Link>
         <div className="reader-book-title">
-          {doc?.title ?? (notFound ? "书籍不存在或无权访问" : "加载中…")}
+          {doc?.title ?? (notFound ? t.reader.notFound : t.reader.loading)}
         </div>
         <div className="reader-lang">
-          {isChinese ? "中文" : "非中文 · 机器翻译"} · {totalChapters} 章 · 已读{" "}
-          {readChapters} 章
+          {isChinese ? t.reader.langZh : t.reader.langOther} ·{" "}
+          {t.reader.chaptersMeta(totalChapters, readChapters)}
         </div>
         <div className="reader-progress">
           <div className="reader-track">
@@ -593,7 +600,7 @@ export default function BookReader() {
           <div className="reader-track-meta">
             <span>{readPct}%</span>
             <span>
-              {readChapters} / {totalChapters} 章
+              {t.reader.progressChapters(readChapters, totalChapters)}
             </span>
           </div>
         </div>
@@ -628,7 +635,7 @@ export default function BookReader() {
                 </span>
                 <span>{c.title}</span>
                 {activeChapter?.id === c.id && (
-                  <span className="chapter-done">在读</span>
+                  <span className="chapter-done">{t.reader.readingNow}</span>
                 )}
               </button>
             );
@@ -637,13 +644,13 @@ export default function BookReader() {
               <>
                 {sliceRange && (
                   <div className="slice-label">
-                    今日切片 · 第 {sliceRange.start}–{sliceRange.end} 章
+                    {t.reader.sliceLabel(sliceRange.start, sliceRange.end)}
                   </div>
                 )}
                 {inSlice.map((c) => renderChapter(c, !!sliceRange))}
                 {doneOthers.length > 0 && (
                   <>
-                    <div className="slice-label">已完成</div>
+                    <div className="slice-label">{t.reader.completedSection}</div>
                     {doneOthers.map((c) => renderChapter(c, false))}
                   </>
                 )}
@@ -654,8 +661,8 @@ export default function BookReader() {
                       onClick={() => setShowAllChapters((v) => !v)}
                     >
                       {showAllChapters
-                        ? "收起其余章节"
-                        : `展开全部 ${chapters.length} 章`}
+                        ? t.reader.collapseOthers
+                        : t.reader.expandAllChapters(chapters.length)}
                     </button>
                     {showAllChapters && rest.map((c) => renderChapter(c, false))}
                   </>
@@ -669,11 +676,13 @@ export default function BookReader() {
       <main className="reader-main">
         <div className="reader-toolbar">
           <span className="reader-bar-label">
-            {activeChapter ? `第 ${activeChapter.order_index} 章` : "正文"}
+            {activeChapter ? t.reader.chapterLabel(activeChapter.order_index) : t.reader.bodyLabel}
           </span>
           <span className="reader-bar-grow" />
           <button
-            className="reader-mini"
+            className="reader-mini reader-mini-icon"
+            aria-label={t.reader.listen}
+            title={t.reader.listen}
             onClick={() => {
               setAudioSignal((v) => v + 1);
               document
@@ -681,7 +690,7 @@ export default function BookReader() {
                 ?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
           >
-            听书
+            <Icon name="head" />
           </button>
           {!isChinese &&
             (Object.keys(translations).length > 0 ? (
@@ -689,14 +698,14 @@ export default function BookReader() {
                 className="reader-mini"
                 onClick={() => setShowTranslation(!showTranslation)}
               >
-                {showTranslation ? "原文" : "翻译"}
+                {showTranslation ? t.reader.original : t.reader.translate}
               </button>
             ) : (
               <button
                 className="reader-mini"
                 disabled={translating}
                 style={{ opacity: translating ? 0.5 : 1 }}
-                title="会调用一次 AI 翻译；未配置 DEEPSEEK_API_KEY 时不可用"
+                title={t.reader.translateTitle}
                 onClick={() => {
                   const ids = paragraphs
                     .filter((p) => !p.image_path)
@@ -704,14 +713,16 @@ export default function BookReader() {
                   if (ids.length > 0) translateParagraphs(ids);
                 }}
               >
-                {translating ? "翻译中…" : "翻译"}
+                {translating ? t.reader.translating : t.reader.translate}
               </button>
             ))}
           <button
-            className="reader-mini"
+            className="reader-mini reader-mini-icon"
+            aria-label={t.reader.settings}
+            title={t.reader.settings}
             onClick={() => setSettingsOpen((v) => !v)}
           >
-            设置
+            <Icon name="gear" />
           </button>
 
           {settingsOpen && (
@@ -722,43 +733,43 @@ export default function BookReader() {
               />
               <div className="reader-settings">
                 <div className="reader-settings-row">
-                  <span className="reader-settings-label">字号</span>
+                  <span className="reader-settings-label">{t.reader.fontSizeLabel}</span>
                   <div className="reader-settings-group">
                     <button
                       onClick={() => changeFontSize(-1)}
-                      aria-label="缩小字号"
+                      aria-label={t.reader.fontSizeDown}
                     >
                       A-
                     </button>
                     <span className="reader-settings-hint">{fontSize}px</span>
                     <button
                       onClick={() => changeFontSize(1)}
-                      aria-label="放大字号"
+                      aria-label={t.reader.fontSizeUp}
                     >
                       A+
                     </button>
                   </div>
                 </div>
                 <div className="reader-settings-row">
-                  <span className="reader-settings-label">主题</span>
+                  <span className="reader-settings-label">{t.reader.themeLabel}</span>
                   <div className="reader-settings-group">
                     <button
                       className={themePref === "light" ? "active" : ""}
                       onClick={() => applyTheme("light")}
                     >
-                      亮
+                      {t.reader.themeLight}
                     </button>
                     <button
                       className={themePref === "dark" ? "active" : ""}
                       onClick={() => applyTheme("dark")}
                     >
-                      暗
+                      {t.reader.themeDark}
                     </button>
                     <button
                       className={themePref === "system" ? "active" : ""}
                       onClick={() => applyTheme("system")}
                     >
-                      系统
+                      {t.reader.themeSystem}
                     </button>
                   </div>
                 </div>
@@ -780,9 +791,9 @@ export default function BookReader() {
             <>
               <h1 className="reader-chapter-title">{activeChapter.title}</h1>
               <div className="reader-hint">
-                共 {paragraphs.length} 段 · 点击段落可做笔记
+                {t.reader.paragraphsHint(paragraphs.length)}
                 {!isChinese && Object.keys(translations).length > 0 && (
-                  <span className="machine-tag"> · 机器翻译，仅供理解大意</span>
+                  <span className="machine-tag">{t.reader.machineTag}</span>
                 )}
               </div>
 
@@ -794,11 +805,9 @@ export default function BookReader() {
 
               {loading ? (
                 <>
-                  <p className="reader-hint">加载中…</p>
+                  <p className="reader-hint">{t.reader.loading}</p>
                   {slowLoad && (
-                    <p className="reader-hint">
-                      网络较慢，仍在读取本章内容，请稍候…
-                    </p>
+                    <p className="reader-hint">{t.reader.slowLoad}</p>
                   )}
                 </>
               ) : (
@@ -825,11 +834,11 @@ export default function BookReader() {
                   // 原文模式用 text_html（白名单清洗过的内联 HTML），译文/pre 用纯文本
                   let inner: React.ReactNode;
                   if (showT || !p.text_html) {
-                    const t =
+                    const text =
                       showT && translations[p.id]
                         ? translations[p.id]
                         : p.text_original;
-                    inner = t;
+                    inner = text;
                   } else {
                     inner = (
                       <span dangerouslySetInnerHTML={{ __html: p.text_html }} />
@@ -870,14 +879,14 @@ export default function BookReader() {
                       {isSelected && (
                         <div className="note-panel">
                           <div className="note-panel-title">
-                            记笔记 · 第{" "}
-                            {paragraphs.findIndex((x) => x.id === selected) + 1}{" "}
-                            段
+                            {t.reader.notePanelTitle(
+                              paragraphs.findIndex((x) => x.id === selected) + 1,
+                            )}
                           </div>
                           <textarea
                             value={noteComment}
                             onChange={(e) => setNoteComment(e.target.value)}
-                            placeholder="写点想法…（可留空只做标记）"
+                            placeholder={t.reader.notePlaceholder}
                           />
                           <div className="note-panel-row">
                             <div className="note-colors">
@@ -893,7 +902,7 @@ export default function BookReader() {
                                 />
                               ))}
                             </div>
-                            <button onClick={saveNote}>保存笔记</button>
+                            <button onClick={saveNote}>{t.reader.saveNote}</button>
                             {noteMessage && (
                               <span className="note-message">{noteMessage}</span>
                             )}
@@ -907,7 +916,7 @@ export default function BookReader() {
 
               {offline && (
                 <div className="reader-hint" style={{ color: "#b45309" }}>
-                  {copy.reader.offlineHint}
+                  {t.reader.offlineHint}
                 </div>
               )}
 
@@ -932,49 +941,51 @@ export default function BookReader() {
                     disabled={completing || chapterCompleted}
                   >
                     {chapterCompleted
-                      ? "本章已完成"
+                      ? t.reader.chapterDone
                       : completing
-                        ? "提交中…"
-                        : "完成本章"}
+                        ? t.reader.submitting
+                        : t.reader.completeChapter}
                   </button>
                   <button
-                    className="reader-nav-btn btn-ghost btn-sm"
-                    aria-label="上一章"
+                    className="reader-nav-btn btn-ghost btn-sm icon-only"
+                    aria-label={t.reader.prevChapter}
+                    title={t.reader.prevChapter}
                     disabled={!hasPrevChapter}
                     onClick={() => goAdjacentChapter(-1)}
                   >
-                    <span className="reader-nav-arrow">←</span>
-                    <span className="reader-nav-text">上一章</span>
+                    <Icon name="back" />
                   </button>
                   <button
-                    className="reader-nav-btn btn-ghost btn-sm"
-                    aria-label="下一章"
+                    className="reader-nav-btn btn-ghost btn-sm icon-only"
+                    aria-label={t.reader.nextChapter}
+                    title={t.reader.nextChapter}
                     disabled={!hasNextChapter}
                     onClick={() => goAdjacentChapter(1)}
                   >
-                    <span className="reader-nav-arrow">→</span>
-                    <span className="reader-nav-text">下一章</span>
+                    <Icon name="next" />
                   </button>
                   <button
-                    className="btn-ghost btn-sm"
+                    className="btn-ghost btn-sm icon-only"
+                    aria-label={t.reader.contents}
+                    title={t.reader.contents}
                     onClick={() => {
                       setShowAllChapters(true);
                       setSidebarOpen(true);
                     }}
                   >
-                    目录
+                    <Icon name="toc" />
                   </button>
                 </div>
                 {(completeMessage || chapterCompleted) && (
                   <p className="note-message" style={{ margin: "8px 0 0" }}>
-                    {completeMessage || "已完成，已计入统计"}
+                    {completeMessage || t.reader.completedFallback}
                   </p>
                 )}
               </div>
             </>
           ) : (
             <div className="reader-empty">
-              {notFound ? "书籍不存在或无权访问" : copy.reader.empty}
+              {notFound ? t.reader.notFound : t.reader.empty}
             </div>
           )}
         </div>
@@ -987,7 +998,7 @@ export default function BookReader() {
             ? [
                 {
                   id: "complete-chapter",
-                  text: copy.reader.completeGuide,
+                  text: t.reader.completeGuide,
                 },
               ]
             : []

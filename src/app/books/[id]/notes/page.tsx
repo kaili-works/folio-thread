@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { copy } from "@/lib/copy";
+import { useI18n } from "@/i18n";
+import { Icon } from "@/components/Icon";
 
 const COLOR_HEX: Record<string, string> = {
   yellow: "#f59e0b",
@@ -36,6 +37,7 @@ type ChapterGroup = {
 export default function BookNotes() {
   const { id } = useParams<{ id: string }>();
   const supabase = createClient();
+  const { locale, t } = useI18n();
 
   const [doc, setDoc] = useState<any>(null);
   const [groups, setGroups] = useState<ChapterGroup[]>([]);
@@ -64,7 +66,7 @@ export default function BookNotes() {
       setDoc(docData);
       if (!docData) {
         setGroups([]);
-        setError("没有找到这本书，可能已被删除或无权访问。");
+        setError(t.bookNotes.notFound);
         return;
       }
 
@@ -140,14 +142,14 @@ export default function BookNotes() {
 
       setGroups(sorted);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "加载失败，请稍后重试。");
+      setError(e instanceof Error ? e.message : t.bookNotes.loadFailed);
     } finally {
       setLoading(false);
     }
   }
 
   async function deleteNote(annotationId: string) {
-    if (!window.confirm("删除这条笔记？")) return;
+    if (!window.confirm(t.bookNotes.confirmDelete)) return;
     const res = await fetch(`/api/annotations/${annotationId}`, {
       method: "DELETE",
     });
@@ -155,7 +157,7 @@ export default function BookNotes() {
       load();
     } else {
       const json = await res.json().catch(() => ({}));
-      alert("删除失败：" + (json.error ?? res.status));
+      alert(t.bookNotes.deleteFailed(json.error ?? res.status));
     }
   }
 
@@ -177,7 +179,7 @@ export default function BookNotes() {
       load();
     } else {
       const json = await res.json().catch(() => ({}));
-      alert("保存失败：" + (json.error ?? res.status));
+      alert(t.bookNotes.saveFailed(json.error ?? res.status));
     }
   }
 
@@ -187,19 +189,24 @@ export default function BookNotes() {
 
   function exportMarkdown() {
     const lines: string[] = [];
-    lines.push(`# 《${doc?.title ?? ""}》读书笔记`);
+    lines.push(t.bookNotes.exportTitle(doc?.title ?? ""));
     lines.push("");
     for (const g of groups) {
       lines.push(`## ${escapeMarkdown(g.title)}`);
       lines.push("");
       for (const p of g.paragraphs) {
         lines.push(
-          `### 第 ${p.order} 段 · "${escapeMarkdown(p.excerpt)}${p.excerpt ? "…" : ""}"`,
+          t.bookNotes.exportParagraph(p.order, escapeMarkdown(p.excerpt)),
         );
         lines.push("");
         for (const c of p.comments) {
-          const body = c.comment ? escapeMarkdown(c.comment) : "（无评论，仅标记）";
-          lines.push(`- ${body}  \`${new Date(c.time).toLocaleString()}\``);
+          const body = c.comment
+            ? escapeMarkdown(c.comment)
+            : t.bookNotes.emptyComment;
+          const time = new Date(c.time).toLocaleString(
+            locale === "en" ? "en-US" : "zh-CN",
+          );
+          lines.push(`- ${body}  \`${time}\``);
         }
         lines.push("");
       }
@@ -211,7 +218,9 @@ export default function BookNotes() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${doc?.title ?? "笔记"}-笔记.md`;
+    a.download = t.bookNotes.exportFileName(
+      doc?.title ?? t.bookNotes.exportFileFallback,
+    );
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -223,32 +232,35 @@ export default function BookNotes() {
         className="reader-back"
         style={{ marginBottom: 18 }}
       >
-        ← 返回阅读
+        {t.bookNotes.back}
       </Link>
 
       <div className="page-head page-head-row">
         <div>
-          <span className="kicker">Notes</span>
-          <h1>{doc?.title ?? (loading ? "加载中…" : "读书笔记")}</h1>
+          <span className="kicker">{t.bookNotes.kicker}</span>
+          <h1>
+            {doc?.title ??
+              (loading ? t.bookNotes.loading : t.bookNotes.titleFallback)}
+          </h1>
         </div>
         {!loading && groups.length > 0 && (
           <button className="btn-ghost btn-sm" onClick={exportMarkdown}>
-            导出 Markdown
+            {t.bookNotes.export}
           </button>
         )}
       </div>
 
       {loading ? (
-        <p className="muted">加载中…</p>
+        <p className="muted">{t.bookNotes.loading}</p>
       ) : error ? (
         <div>
           <p className="muted">{error}</p>
           <button className="btn-ghost btn-sm" onClick={load}>
-            重试
+            {t.bookNotes.retry}
           </button>
         </div>
       ) : groups.length === 0 ? (
-        <p className="muted">{copy.stats.noNotes}</p>
+        <p className="muted">{t.bookNotes.empty}</p>
       ) : (
         groups.map((g, gi) => (
           <section
@@ -285,7 +297,7 @@ export default function BookNotes() {
                     textDecoration: "none",
                   }}
                 >
-                  第 {p.order} 段 · “{p.excerpt}
+                  {t.bookNotes.paragraphRef(p.order)} · “{p.excerpt}
                   {p.excerpt ? "…" : ""}”
                 </Link>
                 <div style={{ marginTop: 8 }}>
@@ -348,13 +360,13 @@ export default function BookNotes() {
                               className="btn-sm"
                               onClick={saveEdit}
                             >
-                              保存
+                              {t.bookNotes.save}
                             </button>
                             <button
                               className="btn-ghost btn-sm"
                               onClick={() => setEditingId(null)}
                             >
-                              取消
+                              {t.bookNotes.cancel}
                             </button>
                           </div>
                         </div>
@@ -371,23 +383,30 @@ export default function BookNotes() {
                             }}
                           />
                           <span style={{ flex: 1 }}>
-                            {c.comment || "（无评论，仅标记）"}
+                            {c.comment || t.bookNotes.emptyComment}
                             <span className="muted" style={{ fontSize: 11 }}>
                               {" "}
-                              · {new Date(c.time).toLocaleString("zh-CN")}
+                              ·{" "}
+                              {new Date(c.time).toLocaleString(
+                                locale === "en" ? "en-US" : "zh-CN",
+                              )}
                             </span>
                           </span>
                           <button
-                            className="btn-quiet btn-xs"
+                            className="note-act"
+                            aria-label={t.bookNotes.edit}
+                            title={t.bookNotes.edit}
                             onClick={() => startEdit(c)}
                           >
-                            编辑
+                            <Icon name="pencil" />
                           </button>
                           <button
-                            className="btn-danger btn-xs"
+                            className="note-act danger"
+                            aria-label={t.bookNotes.remove}
+                            title={t.bookNotes.remove}
                             onClick={() => deleteNote(c.id)}
                           >
-                            删除
+                            <Icon name="trash" />
                           </button>
                         </>
                       )}
