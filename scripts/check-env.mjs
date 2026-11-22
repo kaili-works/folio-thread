@@ -20,7 +20,10 @@ const REQUIRED = [
 ];
 
 const OPTIONAL = [
-  ["DEEPSEEK_API_KEY", "缺失时清单走规则生成，翻译/归类/知识点不可用"],
+  [
+    "AI_API_KEY / DEEPSEEK_API_KEY",
+    "缺失时清单生成返回 503；翻译 / 归类 / 知识点不可用",
+  ],
   ["WEREAD_API_KEY", "缺失时隐藏微信读书入口"],
   ["EDGE_TTS_PYTHON", "缺失时跳过 Edge TTS"],
   ["AZURE_SPEECH_KEY", "缺失时跳过 Azure 语音"],
@@ -59,7 +62,12 @@ try {
   process.exit(1);
 }
 
-const missingOptional = OPTIONAL.filter(([key]) => !process.env[key]?.trim());
+const missingOptional = OPTIONAL.filter(([key]) => {
+  if (key === "AI_API_KEY / DEEPSEEK_API_KEY") {
+    return !(process.env.AI_API_KEY?.trim() || process.env.DEEPSEEK_API_KEY?.trim());
+  }
+  return !process.env[key]?.trim();
+});
 if (missingOptional.length > 0) {
   console.warn("[check-env] 可选变量未配置（应用仍可启动）：");
   for (const [key, hint] of missingOptional) console.warn(`  - ${key}：${hint}`);

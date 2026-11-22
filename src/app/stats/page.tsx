@@ -115,7 +115,9 @@ export default function StatsPage() {
       if (!res.ok) {
         // 接口已按界面语言返回报错，这里只把「缺 Key」替换成带 README 指引的版本
         setMessage(
-          json.error === "未配置 DEEPSEEK_API_KEY" ||
+          json.error === "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY" ||
+            json.error === "AI_API_KEY or DEEPSEEK_API_KEY is not configured" ||
+            json.error === "未配置 DEEPSEEK_API_KEY" ||
             json.error === "DEEPSEEK_API_KEY is not configured"
             ? t.stats.classifyNoKey
             : json.error || t.stats.classifyFailed,

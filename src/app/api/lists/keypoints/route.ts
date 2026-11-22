@@ -2,15 +2,12 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getAiConfig } from "@/lib/config";
 import { getRequestLocale } from "@/lib/request-locale";
 import { keyPointRules, outputLanguageRule } from "@/lib/ai-locale";
 import type { Locale } from "@/i18n";
 import { errorResponse } from "@/lib/api-response";
 import { tApi } from "@/lib/api-messages";
-
-const DEEPSEEK_URL = getDeepSeekUrl();
-const MODEL = "deepseek-flash";
 
 type Item = {
   id: string;
@@ -28,8 +25,8 @@ type BookPayload = {
 
 // 让 AI 为每本书提炼 3 个知识点标签；优先参考章节标题，没有章节时按书名的核心概念提炼。
 async function callDeepSeek(books: BookPayload[], locale: Locale) {
-  const apiKey = await getDeepSeekKey();
-  if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
+  const { key: apiKey, url, model } = getAiConfig();
+  if (!apiKey) throw new Error("未配置 AI_API_KEY 或 DEEPSEEK_API_KEY");
 
   const system = [
     "你是阅读助教。为每本书提炼知识点标签，用来在阅读路径上标注这本书会讲到的核心概念。",
@@ -44,7 +41,7 @@ async function callDeepSeek(books: BookPayload[], locale: Locale) {
     '输出格式：{"books":[{"i":1,"points":["…","…","…"]}]}',
   ].join("\n");
 
-  const res = await fetch(DEEPSEEK_URL, {
+  const res = await fetch(url, {
     method: "POST",
     signal: AbortSignal.timeout(60_000),
     headers: {
@@ -52,7 +49,7 @@ async function callDeepSeek(books: BookPayload[], locale: Locale) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -62,10 +59,10 @@ async function callDeepSeek(books: BookPayload[], locale: Locale) {
     }),
   });
 
-  if (!res.ok) throw new Error(`DeepSeek 请求失败：HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`AI 请求失败：HTTP ${res.status}`);
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("DeepSeek 返回为空");
+  if (!content) throw new Error("AI 返回为空");
 
   const parsed = JSON.parse(content);
   const rows = Array.isArray(parsed) ? parsed : parsed?.books;

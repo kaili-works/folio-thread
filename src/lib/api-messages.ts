@@ -56,6 +56,15 @@ const EN: Record<string, string> = {
     "Too many speech requests. Please try again later.",
 
   // AI 相关
+  "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY":
+    "AI_API_KEY or DEEPSEEK_API_KEY is not configured",
+  "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY（见 README 的 AI 配置）":
+    "AI_API_KEY or DEEPSEEK_API_KEY is not configured (see the AI setup in README)",
+  "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY，无法生成清单（见 README 的 AI 配置）":
+    "AI_API_KEY or DEEPSEEK_API_KEY is not configured, so no list can be generated (see the AI setup in README)",
+  "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY，无法重新生成清单（见 README 的 AI 配置）":
+    "AI_API_KEY or DEEPSEEK_API_KEY is not configured, so the list cannot be regenerated (see the AI setup in README)",
+  "AI 返回为空": "AI returned an empty response",
   "未配置 DEEPSEEK_API_KEY": "DEEPSEEK_API_KEY is not configured",
   "未配置 DEEPSEEK_API_KEY（见 README 的 AI 配置）":
     "DEEPSEEK_API_KEY is not configured (see the AI setup in README)",
@@ -75,6 +84,7 @@ const EN: Record<string, string> = {
   "还没有清单，先点「生成清单」": "No list yet — generate one first",
 
   // 动态消息的前缀（「前缀：详情」写法）
+  "AI 请求失败：": "AI request failed: ",
   "AI 生成失败：": "AI generation failed: ",
   "创建主题失败：": "Failed to create theme: ",
   "创建清单失败：": "Failed to create list: ",

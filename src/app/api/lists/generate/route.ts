@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getAiConfig } from "@/lib/config";
 import { findWeReadBook } from "@/lib/weread";
 import { getRequestLocale } from "@/lib/request-locale";
 import { outputLanguageRule, reasonRules } from "@/lib/ai-locale";
 import type { Locale } from "@/i18n";
 import { errorResponse } from "@/lib/api-response";
 import { tApi } from "@/lib/api-messages";
-
-const DEEPSEEK_URL = getDeepSeekUrl();
-const MODEL = "deepseek-flash";
 
 type Book = {
   id: string;
@@ -34,8 +31,8 @@ async function callDeepSeek(
   description: string,
   locale: Locale,
 ): Promise<Recommendation[]> {
-  const apiKey = await getDeepSeekKey();
-  if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
+  const { key: apiKey, url, model } = getAiConfig();
+  if (!apiKey) throw new Error("未配置 AI_API_KEY 或 DEEPSEEK_API_KEY");
 
   const system = [
     "你是阅读规划助手。根据用户的研究主题，推荐一个循序渐进的阅读书目。",
@@ -54,7 +51,7 @@ async function callDeepSeek(
     .filter(Boolean)
     .join("\n");
 
-  const res = await fetch(DEEPSEEK_URL, {
+  const res = await fetch(url, {
     method: "POST",
     signal: AbortSignal.timeout(60_000),
     headers: {
@@ -62,7 +59,7 @@ async function callDeepSeek(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -72,10 +69,10 @@ async function callDeepSeek(
     }),
   });
 
-  if (!res.ok) throw new Error(`DeepSeek 请求失败：HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`AI 请求失败：HTTP ${res.status}`);
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("DeepSeek 返回为空");
+  if (!content) throw new Error("AI 返回为空");
 
   const parsed = JSON.parse(content);
   const books = Array.isArray(parsed) ? parsed : parsed?.books;
@@ -142,12 +139,12 @@ export async function POST(request: Request) {
     }
 
     if (matched.length === 0) {
-      const key = await getDeepSeekKey();
+      const key = getAiConfig().key;
       throw new ApiError(
         503,
         key
           ? "AI 生成失败，请稍后重试"
-          : "未配置 DEEPSEEK_API_KEY，无法生成清单（见 README 的 AI 配置）",
+          : "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY，无法生成清单（见 README 的 AI 配置）",
       );
     }
 

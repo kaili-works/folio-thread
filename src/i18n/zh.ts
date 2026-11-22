@@ -351,9 +351,9 @@ export const zh = {
     loadFailed: "统计加载失败",
     classifyBtn: (n: number) => `AI 归类 ${n} 个主题`,
     classifying: "归类中…",
-    classifyHint: "会调用一次 AI 归类；未配置 DEEPSEEK_API_KEY 时不可用",
+    classifyHint: "会调用一次 AI 归类；未配置 AI_API_KEY（或 DEEPSEEK_API_KEY）时不可用",
     classifyNoKey:
-      "未配置 DEEPSEEK_API_KEY，无法自动归类（见 README 的 AI 配置）",
+      "未配置 AI_API_KEY（或 DEEPSEEK_API_KEY），无法自动归类（见 README 的 AI 配置）",
     classifyFailed: "归类失败，请稍后再试",
     exportRead: "导出已读清单",
     exportTitle: "# 已读清单",
@@ -559,7 +559,7 @@ export const zh = {
     original: "原文",
     translate: "翻译",
     translating: "翻译中…",
-    translateTitle: "会调用一次 AI 翻译；未配置 DEEPSEEK_API_KEY 时不可用",
+    translateTitle: "会调用一次 AI 翻译；未配置 AI_API_KEY（或 DEEPSEEK_API_KEY）时不可用",
     settings: "设置",
     fontSizeLabel: "字号",
     fontSizeDown: "缩小字号",
@@ -596,7 +596,7 @@ export const zh = {
     offlineHint: "离线模式：显示已缓存章节原文，联网后可查看译文。",
     translateFailed: "翻译暂时不可用，已显示原文；稍后翻页会自动重试。",
     noApiKey:
-      "未配置 DEEPSEEK_API_KEY，翻译功能不可用（见 README 的 AI 配置）",
+      "未配置 AI_API_KEY（或 DEEPSEEK_API_KEY），翻译功能不可用（见 README 的 AI 配置）",
   },
   audio: {
     kicker: "听书",

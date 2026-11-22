@@ -2,14 +2,11 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getAiConfig } from "@/lib/config";
 import { getRequestLocale } from "@/lib/request-locale";
 import { outputLanguageRule, reasonRules } from "@/lib/ai-locale";
 import { errorResponse } from "@/lib/api-response";
 import { tApi } from "@/lib/api-messages";
-
-const DEEPSEEK_URL = getDeepSeekUrl();
-const MODEL = "deepseek-flash";
 
 // 按当前界面语言重写某条清单项的推荐理由，书不变，只换文案
 export async function POST(request: Request) {
@@ -64,9 +61,9 @@ export async function POST(request: Request) {
     }
     if (!title) throw new ApiError(400, "清单项缺少书名");
 
-    const apiKey = await getDeepSeekKey();
+    const { key: apiKey, url, model } = getAiConfig();
     if (!apiKey) {
-      throw new ApiError(503, "未配置 DEEPSEEK_API_KEY（见 README 的 AI 配置）");
+      throw new ApiError(503, "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY（见 README 的 AI 配置）");
     }
 
     const system =
@@ -83,7 +80,7 @@ export async function POST(request: Request) {
       .filter(Boolean)
       .join("\n");
 
-    const res = await fetch(DEEPSEEK_URL, {
+    const res = await fetch(url, {
       method: "POST",
       signal: AbortSignal.timeout(60_000),
       headers: {
@@ -91,7 +88,7 @@ export async function POST(request: Request) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [
           { role: "system", content: system },
           { role: "user", content: userPrompt },
@@ -101,7 +98,7 @@ export async function POST(request: Request) {
       }),
     });
 
-    if (!res.ok) throw new Error(`DeepSeek 请求失败：HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`AI 请求失败：HTTP ${res.status}`);
     const data = await res.json();
     const content = data?.choices?.[0]?.message?.content;
     if (!content) throw new Error("AI 生成失败：返回为空");

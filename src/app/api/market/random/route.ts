@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getAiConfig } from "@/lib/config";
 import { getRequestLocale } from "@/lib/request-locale";
 import { marketPrompt, outputLanguageRule } from "@/lib/ai-locale";
 import { errorResponse } from "@/lib/api-response";
 import { tApi } from "@/lib/api-messages";
-
-const DEEPSEEK_URL = getDeepSeekUrl();
-const MODEL = "deepseek-flash";
 
 // 随机挑选一个领域，避免每次生成都落在同一类主题上
 const DOMAINS = [
@@ -43,8 +40,8 @@ export async function POST() {
       );
     }
 
-    const apiKey = await getDeepSeekKey();
-    if (!apiKey) throw new ApiError(500, "未配置 DEEPSEEK_API_KEY");
+    const { key: apiKey, url, model } = getAiConfig();
+    if (!apiKey) throw new ApiError(500, "未配置 AI_API_KEY 或 DEEPSEEK_API_KEY");
 
     const domain = pick(DOMAINS);
     const locale = await getRequestLocale();
@@ -67,7 +64,7 @@ export async function POST() {
       outputLanguageRule(locale),
     ].join("\n");
 
-    const res = await fetch(DEEPSEEK_URL, {
+    const res = await fetch(url, {
       method: "POST",
       signal: AbortSignal.timeout(60_000),
       headers: {
@@ -75,7 +72,7 @@ export async function POST() {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [
           { role: "system", content: system },
           { role: "user", content: userPrompt },

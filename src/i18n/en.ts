@@ -373,9 +373,9 @@ export const en: Dict = {
     classifyBtn: (n: number) => `Classify ${n} themes with AI`,
     classifying: "Classifying…",
     classifyHint:
-      "Runs one AI classification call; unavailable without DEEPSEEK_API_KEY",
+      "Runs one AI classification call; unavailable without AI_API_KEY (or DEEPSEEK_API_KEY)",
     classifyNoKey:
-      "DEEPSEEK_API_KEY is not configured, so themes cannot be classified automatically (see the AI setup in README)",
+      "AI_API_KEY (or DEEPSEEK_API_KEY) is not configured, so themes cannot be classified automatically (see the AI setup in README)",
     classifyFailed: "Classification failed. Please try again later.",
     exportRead: "Export finished list",
     exportTitle: "# Finished reading",
@@ -586,7 +586,7 @@ export const en: Dict = {
     translate: "Translate",
     translating: "Translating…",
     translateTitle:
-      "Runs one AI translation call; unavailable without DEEPSEEK_API_KEY",
+      "Runs one AI translation call; unavailable without AI_API_KEY (or DEEPSEEK_API_KEY)",
     settings: "Settings",
     fontSizeLabel: "Font size",
     fontSizeDown: "Decrease font size",
@@ -628,7 +628,7 @@ export const en: Dict = {
     translateFailed:
       "Translation is temporarily unavailable, so the original text is shown. It will retry automatically when you turn the page.",
     noApiKey:
-      "DEEPSEEK_API_KEY is not configured, so translation is unavailable (see the AI setup in README)",
+      "AI_API_KEY (or DEEPSEEK_API_KEY) is not configured, so translation is unavailable (see the AI setup in README)",
   },
   audio: {
     kicker: "Listen",

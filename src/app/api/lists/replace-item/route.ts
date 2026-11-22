@@ -2,16 +2,13 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getAiConfig } from "@/lib/config";
 import { findWeReadBook } from "@/lib/weread";
 import { getRequestLocale } from "@/lib/request-locale";
 import { outputLanguageRule, reasonRules } from "@/lib/ai-locale";
 import type { Locale } from "@/i18n";
 import { errorResponse } from "@/lib/api-response";
 import { tApi } from "@/lib/api-messages";
-
-const DEEPSEEK_URL = getDeepSeekUrl();
-const MODEL = "deepseek-flash";
 
 type Book = { id: string; title: string; author: string | null };
 type Recommendation = { title: string; author: string; reason: string };
@@ -26,8 +23,8 @@ async function recommendOne(params: {
   exclude: string[];
   locale: Locale;
 }): Promise<Recommendation> {
-  const apiKey = await getDeepSeekKey();
-  if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
+  const { key: apiKey, url, model } = getAiConfig();
+  if (!apiKey) throw new Error("未配置 AI_API_KEY 或 DEEPSEEK_API_KEY");
 
   const { themeName, description, position, total, before, after, exclude, locale } =
     params;
@@ -50,7 +47,7 @@ async function recommendOne(params: {
     .filter(Boolean)
     .join("\n");
 
-  const res = await fetch(DEEPSEEK_URL, {
+  const res = await fetch(url, {
     method: "POST",
     signal: AbortSignal.timeout(60_000),
     headers: {
@@ -58,7 +55,7 @@ async function recommendOne(params: {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -68,10 +65,10 @@ async function recommendOne(params: {
     }),
   });
 
-  if (!res.ok) throw new Error(`DeepSeek 请求失败：HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`AI 请求失败：HTTP ${res.status}`);
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("DeepSeek 返回为空");
+  if (!content) throw new Error("AI 返回为空");
 
   const parsed = JSON.parse(content);
   const raw = parsed?.book ?? (Array.isArray(parsed?.books) ? parsed.books[0] : null);

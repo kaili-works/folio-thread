@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
-import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getAiConfig } from "@/lib/config";
 import {
   DOMAIN_KEYS,
   DOMAIN_LABELS,
@@ -13,9 +13,6 @@ import { errorResponse } from "@/lib/api-response";
 import { tApi } from "@/lib/api-messages";
 import { getRequestLocale } from "@/lib/request-locale";
 
-const DEEPSEEK_URL = getDeepSeekUrl();
-const MODEL = "deepseek-flash";
-
 type Pending = {
   i: number;
   name: string;
@@ -25,8 +22,8 @@ type Pending = {
 
 // 让 AI 把主题归到 10 个领域之一
 async function callDeepSeek(themes: Pending[]) {
-  const apiKey = await getDeepSeekKey();
-  if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
+  const { key: apiKey, url, model } = getAiConfig();
+  if (!apiKey) throw new Error("未配置 AI_API_KEY 或 DEEPSEEK_API_KEY");
 
   const system = [
     "你是图书管理员。把用户的阅读主题归入给定的领域标签。",
@@ -41,7 +38,7 @@ async function callDeepSeek(themes: Pending[]) {
     '输出格式：{"themes":[{"i":1,"domain":"心理与成长"}]}',
   ].join("\n");
 
-  const res = await fetch(DEEPSEEK_URL, {
+  const res = await fetch(url, {
     method: "POST",
     signal: AbortSignal.timeout(60_000),
     headers: {
@@ -49,7 +46,7 @@ async function callDeepSeek(themes: Pending[]) {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [
         { role: "system", content: system },
         { role: "user", content: userPrompt },
@@ -59,10 +56,10 @@ async function callDeepSeek(themes: Pending[]) {
     }),
   });
 
-  if (!res.ok) throw new Error(`DeepSeek 请求失败：HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`AI 请求失败：HTTP ${res.status}`);
   const data = await res.json();
   const content = data?.choices?.[0]?.message?.content;
-  if (!content) throw new Error("DeepSeek 返回为空");
+  if (!content) throw new Error("AI 返回为空");
 
   const parsed = JSON.parse(content);
   const rows = Array.isArray(parsed) ? parsed : parsed?.themes;
