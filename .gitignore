@@ -25,6 +25,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# 本地 IDE 工作区配置（含本机路径，不随仓库分发）
+*.code-workspace
+
 # 构建备份与运行时日志（.next.bak_* / .next.old_* / .next_old_* 等全部忽略）
 /.next*/
 app.log
