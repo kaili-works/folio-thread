@@ -2,24 +2,21 @@
 
 English · [简体中文](README.md)
 
-**An AI-assisted reading planner for curious learners: name a subject you want to understand, and it orders the books from easier to harder, then splits them into chapters you can finish each day.**
+**An AI reading planner for curious learners: it is built for readers who want to explore one or more unfamiliar fields systematically but don't know where to start. AI builds an easier-to-harder reading list from your request and splits it into daily portions that fit your time budget.**
 
-> **This is a self-hosted project; there is no official hosted service.** You bring your own Supabase project (and optionally a DeepSeek key); the Quick start below takes about five minutes, and your books and notes stay in your own project.
+> **This is a self-hosted project with no official hosted version.** You need your own Supabase project, a DeepSeek key, and optionally a WeRead API key; the Quick start below gets you running in about five minutes.
 
 ## Why this exists
 
-Facing an unfamiliar field, the hard part is rarely finding books. It is knowing where to start, which book comes first, and how much to read each day. Most tools stop at tracking and supervision — streaks, timers, stats — and rarely answer "what should I read next?"
+In the age of AI we often need to learn across fields quickly. Existing reading tools already do book recommendations, immersive reading, tracking, supervision, and review well. What is often missing is a tool that assembles these scattered pieces into one chain: plan as a guide → break the work into tasks → read every day. FolioThread first uses AI to generate an ordered reading list, then splits that list into daily portions you can actually finish, so systematic learning stays clear and sustainable.
 
-FolioThread tries to be the guide: AI builds a reading list with a reason for each book, then turns that list into a daily portion you can actually finish.
+## Core features
 
-## Highlights
-
-- **AI reading plan**: Give it a subject and AI returns 5–6 books, ordered from easier to harder, each with a recommendation. Adjust the whole list in one sentence, or swap a single book.
-- **Your own library**: There is no built-in bookstore. You supply the books; titles without an EPUB are marked "Needs EPUB". With a WeRead API key configured, those books can open directly in WeRead.
-- **Focused reader**: Today's chapters are cut from your daily budget and reading speed. The reader tracks chapter progress and can translate foreign-language passages paragraph by paragraph, side by side with the original.
-- **Today's reading**: Each day it re-splits what is left against your budget, skips chapters you've finished, and rolls over a fresh pack after midnight until the list is done.
-- **Optional audio**: Chapter read-aloud with background sound; Azure → local edge-tts → Baidu → browser voice.
-- **Bilingual**: The interface, AI output, and date formats follow the UI language.
+- **AI reading plan**: Give it a subject and AI returns 5–6 books, ordered from easier to harder, each with a recommendation and its key concepts. Adjust the whole list in one sentence, or just swap a single book or reorder the list.
+- **Private library**: Collect the EPUBs for the list yourself and upload them to your library. If you have a WeRead account and choose to configure a WeRead API key, the app also provides direct links to WeRead. This saves some searching, but specialised books in some fields may not be on WeRead and still need to be found yourself.
+- **Today's reading**: Using your daily budget and reading speed, it cuts today's chapters from the uploaded books in the list (the rest stay hidden) until the whole list is finished; several lists can progress in parallel.
+- **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. If you have high standards for typography, FolioThread may disappoint you.
+- **Domain review**: Classifies and visualises all of your reading lists by domain, so you can see every field you are exploring or have explored.
 
 ## Demo
 
