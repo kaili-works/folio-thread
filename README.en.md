@@ -111,7 +111,15 @@ The service listens on port `3000`. For remote access, use a Tailscale domain; o
 
 ### Using another LLM
 
-Text generation goes through the OpenAI-compatible `/chat/completions` API and defaults to DeepSeek. Most model services provide a compatible endpoint, so no code changes are needed. For example, Alibaba Cloud Model Studio (Qwen):
+Text generation goes through the OpenAI-compatible `/chat/completions` API and defaults to DeepSeek. Leave `AI_*` empty to use it, or set it explicitly:
+
+```ini
+AI_API_KEY=sk-...
+AI_BASE_URL=https://api.deepseek.com/chat/completions
+AI_MODEL=deepseek-flash
+```
+
+You can also switch to another OpenAI-compatible service without code changes. For example, Alibaba Cloud Model Studio (Qwen):
 
 ```ini
 AI_API_KEY=sk-...

@@ -111,7 +111,15 @@ npm start
 
 ### 换用其它大模型
 
-文本生成走 OpenAI 兼容的 `/chat/completions`，默认 DeepSeek；国内外多数模型服务都提供兼容入口，不用改代码。以阿里云百炼（通义）为例：
+默认就是 DeepSeek，不填 `AI_*` 即可；也可以显式写：
+
+```ini
+AI_API_KEY=sk-...
+AI_BASE_URL=https://api.deepseek.com/chat/completions
+AI_MODEL=deepseek-flash
+```
+
+换成国内其它 OpenAI 兼容服务同样不用改代码。阿里云百炼（通义）：
 
 ```ini
 AI_API_KEY=sk-...
