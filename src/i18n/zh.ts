@@ -588,6 +588,7 @@ export const zh = {
       "未配置 DEEPSEEK_API_KEY，翻译功能不可用（见 README 的 AI 配置）",
   },
   audio: {
+    kicker: "听书",
     open: "听书",
     collapse: "收起",
     position: (i: number, total: number) => `第 ${i} / ${total} 段`,

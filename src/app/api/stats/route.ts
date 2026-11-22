@@ -10,8 +10,10 @@ export async function GET() {
   const supabase = await createServerSupabase();
   try {
     const user = await requireUser();
-    const unknownTitle =
-      (await getRequestLocale()) === "en" ? "Unknown title" : "未知书名";
+    const isEn = (await getRequestLocale()) === "en";
+    const unknownTitle = isEn ? "Unknown title" : "未知书名";
+    const unknownTheme = isEn ? "Unknown theme" : "未知主题";
+    const unknownBook = isEn ? "Unknown book" : "未知书籍";
 
     // 并行读取相互独立的表，减少 Supabase 网络往返（单次约 0.6s）。
     // 只有 list_items 依赖 reading_lists，放到第二波。
@@ -180,11 +182,11 @@ export async function GET() {
       .filter((it) => it.status === "completed")
       .map((it) => {
         const title = it.document_id
-          ? (docById.get(it.document_id)?.title ?? "未知书名")
-          : (it.candidate_metadata?.title ?? "未知书名");
+          ? (docById.get(it.document_id)?.title ?? unknownTitle)
+          : (it.candidate_metadata?.title ?? unknownTitle);
         const themeName =
           (themes ?? []).find((t) => t.id === listByTheme.get(it.reading_list_id))
-            ?.name ?? "未知主题";
+            ?.name ?? unknownTheme;
         return {
           id: it.id,
           title,
@@ -202,7 +204,7 @@ export async function GET() {
     const noteBooks = [...noteCounts.entries()]
       .map(([id, count]) => ({
         id,
-        title: docById.get(id)?.title ?? "未知书籍",
+        title: docById.get(id)?.title ?? unknownBook,
         count,
       }))
       .sort((a, b) => b.count - a.count);

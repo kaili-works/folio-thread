@@ -454,7 +454,7 @@ export const en: Dict = {
     exportFileFallback: "notes",
   },
   market: {
-    kicker: "Market",
+    kicker: "Book market",
     title: "Reading path ideas",
     intro:
       "Curated theme reading lists, ready to become your own; or generate a fresh one at random.",
@@ -556,8 +556,8 @@ export const en: Dict = {
     backToday: "← Today's reading",
     notFound: "This book doesn't exist or you don't have access",
     loading: "Loading…",
-    langZh: "Chinese",
-    langOther: "Non-Chinese · machine translation",
+    langZh: "Original text",
+    langOther: "Machine translation",
     chaptersMeta: (total: number, read: number) =>
       `${total} chapter${total === 1 ? "" : "s"} · ${read} read`,
     progressChapters: (read: number, total: number) =>
@@ -622,6 +622,7 @@ export const en: Dict = {
       "DEEPSEEK_API_KEY is not configured, so translation is unavailable (see the AI setup in README)",
   },
   audio: {
+    kicker: "Listen",
     open: "Listen",
     collapse: "Close",
     position: (i: number, total: number) => `Paragraph ${i} of ${total}`,

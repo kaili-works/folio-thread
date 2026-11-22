@@ -693,6 +693,7 @@ export default function DailyPackCard({
                         />
                         <p className="hint">
                           {t.today.minutesRead(minutes, planned)}
+                          {" · "}
                           {autoTracked
                             ? t.today.autoTracked
                             : t.today.manualTrack}

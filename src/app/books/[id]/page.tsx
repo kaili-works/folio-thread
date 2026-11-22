@@ -147,6 +147,9 @@ export default function BookReader() {
   }, [themePref]);
 
   const isChinese = isChineseLang(doc?.language);
+  // 只有书的语言与界面语言不一致时才需要翻译：
+  // 中文界面读外文书、英文界面读中文书都要翻，英文界面读英文书则不用。
+  const needsTranslation = !!doc && isChinese !== (locale === "zh");
 
   async function signPaths(paths: string[]): Promise<Record<string, string>> {
     const unique = [...new Set(paths.filter(Boolean))];
@@ -590,7 +593,7 @@ export default function BookReader() {
           {doc?.title ?? (notFound ? t.reader.notFound : t.reader.loading)}
         </div>
         <div className="reader-lang">
-          {isChinese ? t.reader.langZh : t.reader.langOther} ·{" "}
+          {needsTranslation ? t.reader.langOther : t.reader.langZh} ·{" "}
           {t.reader.chaptersMeta(totalChapters, readChapters)}
         </div>
         <div className="reader-progress">
@@ -692,7 +695,7 @@ export default function BookReader() {
           >
             <Icon name="head" />
           </button>
-          {!isChinese &&
+          {needsTranslation &&
             (Object.keys(translations).length > 0 ? (
               <button
                 className="reader-mini"
@@ -785,6 +788,7 @@ export default function BookReader() {
         )}
         <div
           className="reader-content"
+          data-lang={isChinese ? "zh" : "other"}
           style={{ "--reader-font-size": `${fontSize}px` } as React.CSSProperties}
         >
           {activeChapter ? (
@@ -792,12 +796,12 @@ export default function BookReader() {
               <h1 className="reader-chapter-title">{activeChapter.title}</h1>
               <div className="reader-hint">
                 {t.reader.paragraphsHint(paragraphs.length)}
-                {!isChinese && Object.keys(translations).length > 0 && (
+                {needsTranslation && Object.keys(translations).length > 0 && (
                   <span className="machine-tag">{t.reader.machineTag}</span>
                 )}
               </div>
 
-              {!isChinese && !translating && translateError && (
+              {needsTranslation && !translating && translateError && (
                 <div className="reader-hint" role="status">
                   {translateError}
                 </div>
@@ -827,7 +831,7 @@ export default function BookReader() {
                     return <hr key={p.id} className="reader-hr" />;
                   }
 
-                  const showT = !isChinese && showTranslation;
+                  const showT = needsTranslation && showTranslation;
                   const note = annotations[p.id];
                   const isSelected = selected === p.id;
 

@@ -436,7 +436,7 @@ export default function AudioReader({ segments, chapterTitle, openSignal = 0 }: 
       {open && (
         <div className="tts-panel">
           <div className="tts-head">
-            <span className="kicker">LISTEN</span>
+            <span className="kicker">{t.audio.kicker}</span>
             <button type="button" className="tts-close" onClick={close}>
               {t.audio.collapse}
             </button>
