@@ -8,7 +8,7 @@ export const en: Dict = {
     library: "Library",
     today: "Today's reading",
     stats: "Stats",
-    market: "Book list market",
+    market: "Book-list market",
     libraryShort: "Library",
     notes: "Notes",
     guide: "Guide",
@@ -454,7 +454,7 @@ export const en: Dict = {
     exportFileFallback: "notes",
   },
   market: {
-    kicker: "Book list market",
+    kicker: "Book-list market",
     title: "Reading path ideas",
     intro:
       "Curated theme reading lists, ready to become your own; or generate a fresh one at random.",
@@ -506,7 +506,7 @@ export const en: Dict = {
     steps: [
       {
         title: "Create a theme",
-        text: "Create the theme you want to explore in Themes & lists. Short on ideas? Browse the book list market for ready-made lists.",
+        text: "Create the theme you want to explore in Themes & lists. Short on ideas? Browse the book-list market for ready-made lists.",
       },
       {
         title: "Generate and confirm a list",
