@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/i18n";
 
 type Hint = { id: string; text: string };
 
@@ -12,6 +13,7 @@ export default function Guide({
   userId: string | null;
   hints: Hint[];
 }) {
+  const { t } = useI18n();
   const [hint, setHint] = useState<Hint | null>(null);
 
   useEffect(() => {
@@ -50,7 +52,7 @@ export default function Guide({
   return (
     <div className="guide-bubble">
       <span style={{ flex: 1, minWidth: 0 }}>💡 {hint.text}</span>
-      <button onClick={dismiss} aria-label="关闭提示">
+      <button onClick={dismiss} aria-label={t.common.closeHint}>
         ×
       </button>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { copy } from "@/lib/copy";
+import { useI18n } from "@/i18n";
 
 const KEY = "dr_onboarding_v4";
 const LAST = 2;
@@ -97,6 +97,7 @@ function Motif({ variant }: { variant: 1 | 2 | 3 }) {
 
 // 首次登录后的一次性引导：三屏轮播，最后一屏只关闭弹窗
 export default function OnboardingModal() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const touchStartX = useRef<number | null>(null);
@@ -143,7 +144,7 @@ export default function OnboardingModal() {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="新手引导"
+      aria-label={t.onboarding.aria}
       className="onboarding-overlay"
       onClick={close}
     >
@@ -162,10 +163,10 @@ export default function OnboardingModal() {
         }}
       >
         <div className="onboarding-topbar">
-          <span className="onboarding-step">{copy.onboarding.step(index + 1)}</span>
+          <span className="onboarding-step">{t.onboarding.step(index + 1)}</span>
           <button
             className="onboarding-close"
-            aria-label={copy.onboarding.closeLabel}
+            aria-label={t.onboarding.closeLabel}
             onClick={close}
           >
             ×
@@ -183,9 +184,9 @@ export default function OnboardingModal() {
                 <Motif variant={1} />
               </div>
               <div className="onboarding-copy">
-                <p className="onboarding-kicker">{copy.onboarding.kicker[0]}</p>
-                <h2 className="onboarding-title">{copy.onboarding.title}</h2>
-                <p className="onboarding-body">{copy.onboarding.intro}</p>
+                <p className="onboarding-kicker">{t.onboarding.kicker[0]}</p>
+                <h2 className="onboarding-title">{t.onboarding.title}</h2>
+                <p className="onboarding-body">{t.onboarding.intro}</p>
               </div>
             </section>
 
@@ -195,9 +196,9 @@ export default function OnboardingModal() {
                 <Motif variant={2} />
               </div>
               <div className="onboarding-copy">
-                <p className="onboarding-kicker">{copy.onboarding.kicker[1]}</p>
+                <p className="onboarding-kicker">{t.onboarding.kicker[1]}</p>
                 <ol className="onboarding-steps">
-                  {copy.onboarding.steps.map((step, i) => (
+                  {t.onboarding.steps.map((step, i) => (
                     <li key={step.title}>
                       <span className="onboarding-step-index">0{i + 1}</span>
                       <span>
@@ -216,10 +217,10 @@ export default function OnboardingModal() {
                 <Motif variant={3} />
               </div>
               <div className="onboarding-copy">
-                {copy.onboarding.kicker[2] && (
-                  <p className="onboarding-kicker">{copy.onboarding.kicker[2]}</p>
+                {t.onboarding.kicker[2] && (
+                  <p className="onboarding-kicker">{t.onboarding.kicker[2]}</p>
                 )}
-                <h2 className="onboarding-title">{copy.onboarding.startTitle}</h2>
+                <h2 className="onboarding-title">{t.onboarding.startTitle}</h2>
               </div>
             </section>
           </div>
@@ -231,7 +232,7 @@ export default function OnboardingModal() {
               <button
                 key={i}
                 className={`onboarding-dot${index === i ? " active" : ""}`}
-                aria-label={`第 ${i + 1} 屏`}
+                aria-label={t.onboarding.slideLabel(i + 1)}
                 aria-current={index === i}
                 onClick={() => setIndex(i)}
               />
@@ -240,16 +241,16 @@ export default function OnboardingModal() {
           <div className="onboarding-actions">
             {index > 0 && (
               <button className="onboarding-prev" onClick={goPrev}>
-                {copy.onboarding.prev}
+                {t.onboarding.prev}
               </button>
             )}
             {index < LAST ? (
               <button className="onboarding-next" onClick={goNext}>
-                {copy.onboarding.next}
+                {t.onboarding.next}
               </button>
             ) : (
               <button className="onboarding-start" onClick={close}>
-                {copy.onboarding.startCta}
+                {t.onboarding.startCta}
               </button>
             )}
           </div>

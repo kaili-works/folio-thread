@@ -65,7 +65,8 @@ export default function AppNav() {
       <header className="app-header">
         <div className="app-header-inner">
           <Link href="/today" className="app-logo">
-            FolioThread<em>页脉研读</em>
+            FolioThread
+            {t.nav.brandAlt && <em>{t.nav.brandAlt}</em>}
           </Link>
           <nav className="app-nav-desktop">
             <Link href="/themes" className={isActive("/themes") ? "active" : ""}>
