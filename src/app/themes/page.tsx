@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import AppNav from "@/components/AppNav";
-import { useT } from "@/i18n";
-import { DOMAINS } from "@/lib/domains";
+import { useI18n, useT } from "@/i18n";
+import { DOMAIN_KEYS, domainLabel, normalizeDomain } from "@/lib/domains";
 
 type Theme = {
   id: string;
@@ -27,7 +27,7 @@ function sortThemes(list: Theme[]) {
 function ActIcon({
   name,
 }: {
-  name: "up" | "down" | "swap" | "lock" | "unlock" | "shelve" | "restore" | "delete";
+  name: "up" | "down" | "swap" | "lock" | "unlock" | "shelve" | "restore" | "delete" | "pin";
 }) {
   const common = {
     viewBox: "0 0 16 16",
@@ -55,6 +55,12 @@ function ActIcon({
       <svg {...common}>
         <path d="M3 5.5h8.5M9 3l2.5 2.5L9 8" />
         <path d="M13 10.5H4.5M7 8l-2.5 2.5L7 13" />
+      </svg>
+    );
+  if (name === "pin")
+    return (
+      <svg {...common}>
+        <path d="M8 2.4l1.7 3.5 3.8.6-2.75 2.7.65 3.8L8 11.2l-3.4 1.8.65-3.8L2.5 6.5l3.8-.6z" />
       </svg>
     );
   if (name === "lock")
@@ -118,6 +124,7 @@ type ListItem = {
 export default function ThemesPage() {
   const supabase = createClient();
   const t = useT();
+  const { locale } = useI18n();
 
   const [themes, setThemes] = useState<Theme[]>([]);
   // 每个主题最新清单的项数与已读数，用于左轨摘要
@@ -141,8 +148,8 @@ export default function ThemesPage() {
     kind: "replace" | "delete";
     itemId: string;
   } | null>(null);
-  // 清单视图：路径（默认）/ 列表
-  const [view, setView] = useState<"path" | "list">("path");
+  // 清单视图：列表（默认）/ 路径
+  const [view, setView] = useState<"path" | "list">("list");
   // 一句话调整面板
   const [adjustOpen, setAdjustOpen] = useState(false);
   // 每本书的章节级进度，按 document_id 索引
@@ -169,13 +176,12 @@ export default function ThemesPage() {
     delete_ids: string[];
   } | null>(null);
 
-  // 创建主题表单
+  // 创建主题表单（常驻），侧栏「新建主题」直接聚焦到这里
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const nameInputRef = useRef<HTMLInputElement>(null);
   // 当前主题的每日预算（可编辑）
   const [themeBudget, setThemeBudget] = useState("30");
-  // 新建主题表单是否展开
-  const [creating, setCreating] = useState(false);
   // 主题管理操作是否展开（领域 / 优先 / 搁置 / 删除）
   const [manageOpen, setManageOpen] = useState(false);
   // 移动端：主题合并入口的底部抽屉
@@ -393,7 +399,11 @@ export default function ThemesPage() {
     const updated = json.theme as Theme;
     setThemes((prev) => prev.map((x) => (x.id === updated.id ? updated : x)));
     setActiveTheme((prev) => (prev?.id === updated.id ? updated : prev));
-    setMessage(t.themes.domainUpdated(updated.domain ?? t.themes.uncategorized));
+    setMessage(
+      t.themes.domainUpdated(
+        updated.domain ? domainLabel(updated.domain, locale) : t.themes.uncategorized,
+      ),
+    );
   }
 
   async function patchThemeStatus(theme: Theme, status: string) {
@@ -734,20 +744,31 @@ export default function ThemesPage() {
       <div className="acts">
         <select
           className="domain-select"
-          value={theme.domain ?? ""}
+          value={normalizeDomain(theme.domain) ?? ""}
           onChange={(e) => patchThemeDomain(theme, e.target.value)}
           aria-label={t.themes.domainLabel}
           title={t.themes.domainHint}
         >
           <option value="">{t.themes.uncategorized}</option>
-          {DOMAINS.map((d) => (
+          {DOMAIN_KEYS.map((d) => (
             <option key={d} value={d}>
-              {d}
+              {domainLabel(d, locale)}
             </option>
           ))}
         </select>
         <button
-          className="btn-quiet btn-xs"
+          className={`item-act${theme.status === "priority" ? " on" : ""}`}
+          title={
+            theme.status === "priority"
+              ? t.themes.unpriority
+              : t.themes.priority
+          }
+          aria-label={
+            theme.status === "priority"
+              ? t.themes.unpriority
+              : t.themes.priority
+          }
+          aria-pressed={theme.status === "priority"}
           onClick={() =>
             patchThemeStatus(
               theme,
@@ -755,12 +776,15 @@ export default function ThemesPage() {
             )
           }
         >
-          {theme.status === "priority"
-            ? t.themes.unpriority
-            : t.themes.priority}
+          <ActIcon name="pin" />
         </button>
         <button
-          className="btn-quiet btn-xs"
+          className="item-act"
+          title={theme.status === "shelved" ? t.themes.restore : t.themes.shelve}
+          aria-label={
+            theme.status === "shelved" ? t.themes.restore : t.themes.shelve
+          }
+          aria-pressed={theme.status === "shelved"}
           onClick={() =>
             patchThemeStatus(
               theme,
@@ -768,10 +792,15 @@ export default function ThemesPage() {
             )
           }
         >
-          {theme.status === "shelved" ? t.themes.restore : t.themes.shelved}
+          <ActIcon name={theme.status === "shelved" ? "restore" : "shelve"} />
         </button>
-        <button className="btn-danger btn-xs" onClick={() => deleteTheme(theme)}>
-          {t.themes.remove}
+        <button
+          className="item-act danger"
+          title={t.themes.remove}
+          aria-label={t.themes.remove}
+          onClick={() => deleteTheme(theme)}
+        >
+          <ActIcon name="delete" />
         </button>
       </div>
     );
@@ -781,71 +810,42 @@ export default function ThemesPage() {
     <>
       <AppNav />
       <div className="container app-main themes-page">
-        <div className="page-head page-head-row">
-          <div>
-            <span className="kicker">{t.themes.kicker}</span>
-            <h1>{t.themes.title}</h1>
-          </div>
-          <div className="page-head-acts">
-            {themesLoaded && themes.length > 0 && (
-              <Link
-                href="/today"
-                className="btn-line btn-sm"
-                title={t.themes.goTodayPackHint}
-              >
-                {t.themes.goTodayPack}
-              </Link>
-            )}
-            <button
-              type="button"
-              className="btn-sm theme-new-btn"
-              onClick={() => setCreating((v) => !v)}
-              aria-expanded={creating}
-            >
-              {creating ? t.themes.newThemeClose : `＋ ${t.themes.newTheme}`}
-            </button>
-          </div>
+        <div className="page-head">
+          <span className="kicker">{t.themes.kicker}</span>
+          <h1>{t.themes.title}</h1>
         </div>
 
-        {/* 创建主题：页面唯一主按钮展开后的表单 */}
-        {creating && (
-          <form className="theme-create" onSubmit={createTheme}>
-            <div className="theme-create-grid">
-              <label className="theme-create-field">
-                <span>{t.themes.nameLabel}</span>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={t.themes.namePlaceholder}
-                  required
-                />
-              </label>
-              <label className="theme-create-field">
-                <span>{t.themes.descLabel}</span>
-                <input
-                  type="text"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t.themes.descPlaceholder}
-                />
-              </label>
-            </div>
-            <p className="theme-create-help">{t.themes.createHelp}</p>
-            <div className="theme-create-acts">
-              <button type="submit" className="btn-sm">
-                {t.themes.create}
-              </button>
-              <button
-                type="button"
-                className="btn-ghost btn-sm"
-                onClick={() => setCreating(false)}
-              >
-                {t.themes.cancel}
-              </button>
-            </div>
-          </form>
-        )}
+        {/* 创建主题：常驻表单，随时可填 */}
+        <form className="theme-create" onSubmit={createTheme}>
+          <div className="theme-create-grid">
+            <label className="theme-create-field">
+              <span>{t.themes.nameLabel}</span>
+              <input
+                ref={nameInputRef}
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={t.themes.namePlaceholder}
+                required
+              />
+            </label>
+            <label className="theme-create-field">
+              <span>{t.themes.descLabel}</span>
+              <input
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t.themes.descPlaceholder}
+              />
+            </label>
+          </div>
+          <p className="theme-create-help">{t.themes.createHelp}</p>
+          <div className="theme-create-acts">
+            <button type="submit" className="btn-sm">
+              {t.themes.create}
+            </button>
+          </div>
+        </form>
 
         {message && (
           <div className="toast" role="status">
@@ -1084,7 +1084,16 @@ export default function ThemesPage() {
               );
             })}
             <div className="rail-new">
-              <button type="button" onClick={() => setCreating(true)}>
+              <button
+                type="button"
+                onClick={() => {
+                  nameInputRef.current?.focus();
+                  nameInputRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "center",
+                  });
+                }}
+              >
                 ＋ {t.themes.railNew}
               </button>
               <span>· {t.themes.railNewHint}</span>
@@ -1238,6 +1247,9 @@ export default function ThemesPage() {
                   </div>
                 </div>
               </div>
+
+              {/* 今日包的挑选规则放在预算旁边，替代原来跳转页面的按钮 */}
+              <p className="sheet-rule muted">{t.themes.todayPackRule}</p>
 
               {items.length > 0 && (
                 <div className="sheet-progress">
@@ -1416,16 +1428,22 @@ export default function ThemesPage() {
                               title
                             )}
                           </h3>
-                          {stateChip && (
-                            <span
-                              className={`chip${
-                                it.id === nowItemId ? " solid" : ""
-                              }`}
-                              style={{ marginLeft: "auto" }}
-                            >
-                              {stateChip}
-                            </span>
-                          )}
+                          <span className="node-end">
+                            {!isPending && it.document_id && (
+                              <span className="chip ok">
+                                {t.themes.uploaded}
+                              </span>
+                            )}
+                            {stateChip && (
+                              <span
+                                className={`chip${
+                                  it.id === nowItemId ? " solid" : ""
+                                }`}
+                              >
+                                {stateChip}
+                              </span>
+                            )}
+                          </span>
                         </div>
                         <p className="node-meta">
                           {[
@@ -1436,9 +1454,6 @@ export default function ThemesPage() {
                           ]
                             .filter(Boolean)
                             .join(" · ")}
-                          {!isPending && it.document_id && (
-                            <span className="chip ok">{t.themes.uploaded}</span>
-                          )}
                         </p>
                         <div className="node-chips">
                           {keyPoints.length > 0 ? (
