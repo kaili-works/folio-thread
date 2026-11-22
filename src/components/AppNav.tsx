@@ -21,6 +21,8 @@ export default function AppNav() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+  const [userOpen, setUserOpen] = useState(false);
+  const userRef = useRef<HTMLDivElement>(null);
 
   // 语言菜单：点击外部或按 Esc 关闭
   useEffect(() => {
@@ -40,6 +42,25 @@ export default function AppNav() {
       document.removeEventListener("keydown", onKeyDown);
     };
   }, [langOpen]);
+
+  // 账户菜单：同样点击外部或 Esc 关闭
+  useEffect(() => {
+    if (!userOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (userRef.current && !userRef.current.contains(e.target as Node)) {
+        setUserOpen(false);
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setUserOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [userOpen]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -159,14 +180,35 @@ export default function AppNav() {
                 </div>
               )}
             </div>
-            <button
-              className="icon-only"
-              onClick={logout}
-              aria-label={t.nav.logout}
-              data-tip={t.nav.logout}
-            >
-              <Icon name="exit" />
-            </button>
+            <div className="lang-menu-wrap" ref={userRef}>
+              <button
+                className={`icon-only lang-trigger${userOpen ? " menu-open" : ""}`}
+                aria-label={t.nav.account}
+                aria-haspopup="menu"
+                aria-expanded={userOpen}
+                data-tip={t.nav.account}
+                onClick={() => setUserOpen((v) => !v)}
+              >
+                <Icon name="user" />
+              </button>
+              {userOpen && (
+                <div className="lang-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setUserOpen(false);
+                      router.push("/account");
+                    }}
+                  >
+                    {t.nav.account}
+                  </button>
+                  <button type="button" role="menuitem" onClick={logout}>
+                    {t.nav.logout}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

@@ -12,6 +12,7 @@ export const en: Dict = {
     libraryShort: "Library",
     notes: "Notes",
     guide: "Guide",
+    account: "Account",
     logout: "Sign out",
     newTheme: "New",
     todayShort: "Today",
@@ -648,6 +649,31 @@ export const en: Dict = {
       "System speech cannot play — check your device's text-to-speech settings",
     cloudFallback:
       "Cloud speech is unavailable; switched to the browser voice",
+  },
+  account: {
+    kicker: "Account",
+    title: "Account & data",
+    intro: "Check the email you signed in with, or delete the whole account.",
+    emailLabel: "Email",
+    loading: "Loading account…",
+    signedOutHint: "Your session has expired. Please sign in again.",
+    dataTitle: "Your data",
+    dataBody:
+      "Your library and EPUBs, notes, themes and lists, and reading progress live only under your account; they never appear in anyone else's lists.",
+    dangerKicker: "Danger zone",
+    deleteTitle: "Delete account",
+    deleteBody:
+      "Deleting removes the account itself, your library and uploaded EPUBs, notes, themes and lists, and reading progress. This can't be undone.",
+    deleteCta: "Delete my account",
+    confirmTitle: "Confirm account deletion",
+    confirmBody: (email: string) =>
+      `Type ${email} to confirm. This cannot be undone.`,
+    confirmPlaceholder: "Type your email again",
+    cancel: "Cancel",
+    confirmCta: "Delete permanently",
+    deleting: "Deleting…",
+    mismatch: "That email doesn't match. Try again.",
+    failed: (error: string | number) => `Couldn't delete the account: ${error}`,
   },
   common: {
     closeHint: "Dismiss hint",

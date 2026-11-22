@@ -7470,5 +7470,87 @@ body:has(.auth-split) {
   background: #eef3e6;
 }
 
+/* ===== 账户页 ===== */
+.account-page {
+  max-width: 820px;
+}
+
+.account-card {
+  margin-bottom: 18px;
+}
+
+.account-card h2 {
+  margin: 6px 0 8px;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.account-label {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ft-faint);
+}
+
+.account-value {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--ft-ink);
+}
+
+.account-text {
+  margin: 0 0 14px;
+}
+
+.account-card.danger {
+  border-color: #ecd6cd;
+}
+
+.account-card.danger .kicker {
+  color: #b91c1c;
+}
+
+/* 账户页的删除按钮是主操作，不能用详情页那种「红色文字链接」样式 */
+.account-card.danger button.btn-danger,
+.account-dialog button.btn-danger {
+  padding: 8px 14px;
+  border-color: #b91c1c;
+  background: #b91c1c;
+  color: #fff;
+}
+
+.account-card.danger button.btn-danger:hover,
+.account-dialog button.btn-danger:hover {
+  border-color: #991b1b;
+  background: #991b1b;
+}
+
+.account-dialog {
+  width: min(440px, 92vw);
+  padding: 26px 28px 22px;
+  border: 1px solid var(--ft-rule);
+  border-radius: 14px;
+  background: var(--ft-paper);
+}
+
+.account-dialog h2 {
+  margin: 0 0 8px;
+  font-family: var(--font-serif);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.account-dialog input {
+  margin-bottom: 8px;
+}
+
+.account-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+}
+
 
 
