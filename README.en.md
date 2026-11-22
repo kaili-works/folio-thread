@@ -2,7 +2,24 @@
 
 English · [简体中文](README.md)
 
-Turn a question into a reading plan: generate a themed book list, read a little every day, and keep notes in one place.
+**An AI-assisted reading planner for curious learners: name a subject you want to understand, and it orders the books from easier to harder, then splits them into chapters you can finish each day.**
+
+> **This is a self-hosted project; there is no official hosted service.** You bring your own Supabase project (and optionally a DeepSeek key); the Quick start below takes about five minutes, and your books and notes stay in your own project.
+
+## Why this exists
+
+Facing an unfamiliar field, the hard part is rarely finding books. It is knowing where to start, which book comes first, and how much to read each day. Most tools stop at tracking and supervision — streaks, timers, stats — and rarely answer "what should I read next?"
+
+FolioThread tries to be the guide: AI builds a reading list with a reason for each book, then turns that list into a daily portion you can actually finish.
+
+## Highlights
+
+- **AI reading plan**: Give it a subject and AI returns 5–6 books, ordered from easier to harder, each with a recommendation. Adjust the whole list in one sentence, or swap a single book.
+- **Your own library**: There is no built-in bookstore. You supply the books; titles without an EPUB are marked "Needs EPUB". With a WeRead API key configured, those books can open directly in WeRead.
+- **Focused reader**: Today's chapters are cut from your daily budget and reading speed. The reader tracks chapter progress and can translate foreign-language passages paragraph by paragraph, side by side with the original.
+- **Today's reading**: Each day it re-splits what is left against your budget, skips chapters you've finished, and rolls over a fresh pack after midnight until the list is done.
+- **Optional audio**: Chapter read-aloud with background sound; Azure → local edge-tts → Baidu → browser voice.
+- **Bilingual**: The interface, AI output, and date formats follow the UI language.
 
 ## Demo
 
