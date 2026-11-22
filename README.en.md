@@ -4,7 +4,7 @@ English · [简体中文](README.md)
 
 **An AI reading planner for curious learners: it is built for readers who want to explore one or more unfamiliar fields systematically but don't know where to start. AI builds an easier-to-harder reading list from your request and splits it into daily portions that fit your time budget.**
 
-> **This is a self-hosted project with no official hosted version.** You need your own Supabase project, a DeepSeek key, and optionally a WeRead API key; the Quick start below gets you running in about five minutes.
+> **This is a self-hosted project with no official hosted version.** You need your own Supabase project, an LLM API key (DeepSeek or any OpenAI-compatible provider), and optionally a WeRead API key; the Quick start below gets you running in about five minutes.
 
 ## Why this exists
 
@@ -100,11 +100,25 @@ The service listens on port `3000`. For remote access, use a Tailscale domain; o
 
 | Variable | Behaviour when missing |
 | --- | --- |
-| `DEEPSEEK_API_KEY` | Generating or regenerating a list returns **503** with no fallback; translation and theme classification stay unavailable; key-point extraction fails silently |
+| `AI_API_KEY` (or `DEEPSEEK_API_KEY`) | Generating or regenerating a list returns **503** with no fallback; translation and theme classification stay unavailable; key-point extraction fails silently |
 | `WEREAD_API_KEY` | Hides the "readable on WeRead" link and badge |
 | `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | Azure is skipped; speech tries Azure → local edge-tts → Baidu, then falls back to the browser voice |
 | `EDGE_TTS_PYTHON` | Pin the Python interpreter used by edge-tts; otherwise it is auto-detected |
 | `EDGE_TTS_DISABLED=1` | Disables local edge-tts, still trying Azure / Baidu |
+
+### Using another LLM
+
+Text generation goes through the OpenAI-compatible `/chat/completions` API and defaults to DeepSeek. To use OpenAI:
+
+```ini
+AI_PROVIDER=openai
+AI_API_KEY=sk-...
+AI_MODEL=gpt-4o-mini
+```
+
+You can also set only `AI_API_KEY` and `AI_MODEL=gpt-4o-mini`; the provider is inferred from the model name. `AI_BASE_URL` is for self-hosted proxies or other compatible services and must be the full URL (including `/chat/completions`). The old `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` variables still work.
+
+Claude's native API uses a different protocol; connect it through an OpenAI-compatible gateway such as OpenRouter, LiteLLM, or one-api.
 
 ## Background music (optional)
 
