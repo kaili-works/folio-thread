@@ -78,7 +78,9 @@ npm start
 | --- | --- |
 | `DEEPSEEK_API_KEY` | 清单走规则生成；翻译、归类、知识点提示不可用 |
 | `WEREAD_API_KEY` | 隐藏「微信读书可读」入口与标签 |
-| `EDGE_TTS_PYTHON` / `AZURE_SPEECH_KEY` | 跳过对应语音，回落到浏览器内置语音 |
+| `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | 未配置则跳过 Azure；语音依次尝试 Azure → 本机 edge-tts → 百度，云端全部失败才回退浏览器内置语音 |
+| `EDGE_TTS_PYTHON` | 手动指定 edge-tts 使用的 Python 路径；缺省自动探测 |
+| `EDGE_TTS_DISABLED=1` | 禁用本机 edge-tts，跳过该档，仍会尝试 Azure / 百度 |
 
 ## 背景音乐（可选）
 
@@ -88,6 +90,21 @@ npm start
 2. 缺失时回落到 `assets/audio-fallback/` 下由 `scripts/make_audio.py` 生成的 CC0 合成音。
 
 使用自己的音乐时，按这两个文件名放入 `background-music/` 即可，`npm run dev` / `npm run build` 会自动同步到 `public/audio`。作者本地使用的 Pixabay 曲目与许可说明见 [NOTICE](NOTICE)。
+
+### 默认听到什么
+
+**全新克隆 / 自部署默认听到的是 `assets/audio-fallback/` 里的 CC0 合成 loop**（滤波噪声模拟雨声、程序合成音符模拟钢琴），不是下面这两首真人录音。原因见 [NOTICE](NOTICE) 2.1：Pixabay 许可不允许把原始音频原样再分发，所以它们不进仓库，只存在于作者本机。
+
+### 作者使用的音源（可选，自行下载）
+
+想换成作者本地那两首，在 Pixabay 按 ID 搜索下载后按文件名放入 `background-music/`：
+
+| 文件名 | 曲目 | 作者 | Pixabay ID |
+| --- | --- | --- | --- |
+| `piano-loop.mp3` | Gymnopédie No. 1 | Erik Satie（演奏：abydos_music） | 176573 |
+| `rain-loop.mp3` | Sleep Well (Rainy Toasted White Noise Mix) | gingerleegalaxy | 229397 |
+
+不放也完全可用，只是听到合成 loop；换不换不影响功能。曲目许可以 Pixabay 内容许可为准。
 
 ## 自带书籍
 
