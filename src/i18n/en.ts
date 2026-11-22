@@ -506,7 +506,7 @@ export const en: Dict = {
     steps: [
       {
         title: "Create a theme",
-        text: "Create the theme you want to explore in Themes & lists. Short on ideas? Browse the book-list market.",
+        text: "Create the theme you want to explore in Themes & lists. Short on ideas? Browse the Book market for ready-made lists.",
       },
       {
         title: "Generate and confirm a list",
