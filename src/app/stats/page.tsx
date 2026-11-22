@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import AppNav from "@/components/AppNav";
-import { copy } from "@/lib/copy";
-import { DOMAINS, domainOrDefault } from "@/lib/domains";
+import { useI18n, type Dict, type Locale } from "@/i18n";
+import { DOMAIN_KEYS, domainLabel, domainOrDefault } from "@/lib/domains";
 
 type ThemeItem = {
   id: string;
@@ -46,15 +46,36 @@ type Stats = {
   completed_items: CompletedItem[];
 };
 
-function itemState(it: ThemeItem) {
-  if (it.status === "completed") return "已读完";
-  if (it.status === "in_progress") return "在读";
-  if (it.status === "skipped") return "已跳过";
-  if (it.status === "shelved") return "已搁置";
+function itemState(it: ThemeItem, t: Dict) {
+  if (it.status === "completed") return t.stats.stateDone;
+  if (it.status === "in_progress") return t.stats.stateReading;
+  if (it.status === "skipped") return t.stats.stateSkipped;
+  if (it.status === "shelved") return t.stats.stateShelved;
   if (it.availability === "pending_supplement") {
-    return it.weread_progress !== null ? `微信读书 ${it.weread_progress}%` : "待补充";
+    return it.weread_progress !== null
+      ? t.stats.wereadProgress(it.weread_progress)
+      : t.stats.statePending;
   }
-  return "未开始";
+  return t.stats.stateNotStarted;
+}
+
+// 日期按界面语言显示：中文 2026.11.22，英文 Nov 22, 2026
+function formatDay(iso: string, locale: Locale) {
+  const d = new Date(iso);
+  if (locale === "en") {
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }).format(d);
+  }
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}.${mm}.${dd}`;
+}
+
+function numberLocale(locale: Locale) {
+  return locale === "en" ? "en-US" : "zh-CN";
 }
 
 function themePct(t: ThemeStat) {
@@ -62,6 +83,7 @@ function themePct(t: ThemeStat) {
 }
 
 export default function StatsPage() {
+  const { locale, t } = useI18n();
   const [stats, setStats] = useState<Stats | null>(null);
   const [message, setMessage] = useState("");
   const [openThemeId, setOpenThemeId] = useState<string | null>(null);
@@ -75,7 +97,7 @@ export default function StatsPage() {
       if (json.error) setMessage(json.error);
       else setStats(json as Stats);
     } catch {
-      setMessage("统计加载失败");
+      setMessage(t.stats.loadFailed);
     }
   }
 
@@ -91,16 +113,18 @@ export default function StatsPage() {
       const res = await fetch("/api/themes/classify", { method: "POST" });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // 接口已按界面语言返回报错，这里只把「缺 Key」替换成带 README 指引的版本
         setMessage(
-          json.error === "未配置 DEEPSEEK_API_KEY"
-            ? "未配置 DEEPSEEK_API_KEY，无法自动归类（见 README 的 AI 配置）"
-            : json.error || "归类失败，请稍后再试",
+          json.error === "未配置 DEEPSEEK_API_KEY" ||
+            json.error === "DEEPSEEK_API_KEY is not configured"
+            ? t.stats.classifyNoKey
+            : json.error || t.stats.classifyFailed,
         );
         return;
       }
       if (json.updated > 0) await loadStats();
     } catch {
-      setMessage("归类失败，请稍后再试");
+      setMessage(t.stats.classifyFailed);
     } finally {
       setClassifying(false);
     }
@@ -113,11 +137,9 @@ export default function StatsPage() {
 
   function exportMarkdown() {
     if (!stats) return;
-    const lines: string[] = ["# 已读清单", ""];
+    const lines: string[] = [t.stats.exportTitle, ""];
     for (const it of stats.completed_items) {
-      const time = it.completed_at
-        ? new Date(it.completed_at).toLocaleString()
-        : "—";
+      const time = it.completed_at ? formatDay(it.completed_at, locale) : "—";
       lines.push(`- ${it.title}（${it.theme}） · ${time}`);
     }
     const blob = new Blob([lines.join("\n")], {
@@ -126,7 +148,7 @@ export default function StatsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "已读清单.md";
+    a.download = t.stats.exportFileName;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -149,10 +171,8 @@ export default function StatsPage() {
       .filter((v): v is string => Boolean(v))
       .sort();
     const last = times[times.length - 1];
-    return last
-      ? new Date(last).toLocaleDateString("zh-CN").replace(/\//g, ".")
-      : "";
-  }, [stats]);
+    return last ? formatDay(last, locale) : "";
+  }, [stats, locale]);
 
   // 按固定领域顺序分篮子，空领域不显示
   const groups = useMemo(() => {
@@ -164,7 +184,7 @@ export default function StatsPage() {
       arr.push(t);
       map.set(d, arr);
     }
-    return DOMAINS.filter((d) => (map.get(d)?.length ?? 0) > 0).map((d) => ({
+    return DOMAIN_KEYS.filter((d) => (map.get(d)?.length ?? 0) > 0).map((d) => ({
       domain: d,
       themes: map.get(d) ?? [],
     }));
@@ -178,8 +198,8 @@ export default function StatsPage() {
       <div className="container app-main">
         <div className="page-head page-head-row">
           <div>
-            <span className="kicker">Stats</span>
-            <h1>阅读统计</h1>
+            <span className="kicker">{t.stats.kicker}</span>
+            <h1>{t.stats.title}</h1>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             {stats && stats.unclassified > 0 && (
@@ -187,16 +207,16 @@ export default function StatsPage() {
                 className="btn-ghost btn-sm"
                 onClick={classifyThemes}
                 disabled={classifying}
-                title="会调用一次 AI 归类；未配置 DEEPSEEK_API_KEY 时不可用"
+                title={t.stats.classifyHint}
               >
                 {classifying
-                  ? "归类中…"
-                  : `AI 归类 ${stats.unclassified} 个主题`}
+                  ? t.stats.classifying
+                  : t.stats.classifyBtn(stats.unclassified)}
               </button>
             )}
             {stats && stats.completed_items.length > 0 && (
               <button className="btn-ghost btn-sm" onClick={exportMarkdown}>
-                导出已读清单
+                {t.stats.exportRead}
               </button>
             )}
           </div>
@@ -205,12 +225,12 @@ export default function StatsPage() {
         {message && <p className="message err">{message}</p>}
 
         {!stats ? (
-          <p className="muted">加载中…</p>
+          <p className="muted">{t.stats.loading}</p>
         ) : (
           <>
             <section>
               {overallTotal === 0 ? (
-                <p className="muted">{copy.stats.noItems}</p>
+                <p className="muted">{t.stats.noItems}</p>
               ) : (
                 <>
                   <div className="hero-row">
@@ -223,19 +243,23 @@ export default function StatsPage() {
                         />
                       </div>
                       <div className="progress-meta">
-                        <span>全部主题合计</span>
+                        <span>{t.stats.overallLabel}</span>
                         <span>
-                          {overallCompleted}/{overallTotal} 项 · {finishedThemes}/
-                          {stats.themes.length} 个主题已完成
+                          {t.stats.overallMeta(
+                            overallCompleted,
+                            overallTotal,
+                            finishedThemes,
+                            stats.themes.length,
+                          )}
                         </span>
                       </div>
                     </div>
                     {stats.completed_items.length > 0 && (
                       <div className="hero-side">
-                        已读清单
+                        {t.stats.finishedTitle}
                         <br />
-                        {stats.completed_items.length} 本
-                        {lastDoneLabel ? ` · 最近读完 ${lastDoneLabel}` : ""}
+                        {t.stats.finishedCount(stats.completed_items.length)}
+                        {lastDoneLabel ? t.stats.lastFinished(lastDoneLabel) : ""}
                       </div>
                     )}
                   </div>
@@ -244,8 +268,8 @@ export default function StatsPage() {
                       className="completion-banner"
                       style={{ marginTop: 18, marginBottom: 0 }}
                     >
-                      所有阅读清单都已完成
-                      <span className="sub">可以开始新的研究主题了。</span>
+                      {t.stats.allDoneTitle}
+                      <span className="sub">{t.stats.allDoneSub}</span>
                     </div>
                   )}
                 </>
@@ -253,56 +277,60 @@ export default function StatsPage() {
 
               <div className="stat-strip">
                 <div className="cell">
-                  <div className="k">完成整本</div>
+                  <div className="k">{t.stats.statBooks}</div>
                   <div className="v">
                     {stats.books.completed_books}
-                    <small>本</small>
+                    <small>{t.stats.unitBook}</small>
                   </div>
                 </div>
                 <div className="cell">
-                  <div className="k">完成章节</div>
+                  <div className="k">{t.stats.statChapters}</div>
                   <div className="v">
                     {stats.books.completed_chapters}
-                    <small>章</small>
+                    <small>{t.stats.unitChapter}</small>
                   </div>
                 </div>
                 <div className="cell">
-                  <div className="k">完成字数</div>
+                  <div className="k">{t.stats.statWords}</div>
                   <div className="v">
-                    {stats.words.original.toLocaleString("zh-CN")}
-                    <small>字</small>
+                    {stats.words.original.toLocaleString(numberLocale(locale))}
+                    <small>{t.stats.unitWord}</small>
                   </div>
                 </div>
               </div>
               <p className="stat-note">
-                中文按字数计、非中文按词数计；未完成章节不计入。译文估算{" "}
-                {stats.words.translated_estimate.toLocaleString("zh-CN")} 字。
+                {t.stats.statNote(
+                  stats.words.translated_estimate.toLocaleString(
+                    numberLocale(locale),
+                  ),
+                )}
               </p>
             </section>
 
             <section className="stats-section">
               <div className="card-head">
-                <span className="kicker">领域篮子</span>
+                <span className="kicker">{t.stats.domainKicker}</span>
                 <span style={{ fontSize: 10.5, color: "var(--ft-faint)" }}>
-                  点卡片抽出，再点打开书目
+                  {t.stats.domainHint}
                 </span>
               </div>
 
               {!stats.domain_ready && (
                 <p className="message" style={{ marginTop: 4 }}>
-                  领域归类还没启用：请在 Supabase SQL Editor 执行
-                  database/0008_theme_domain.sql（为 themes 增加 domain
-                  列），刷新后会自动归类。
+                  {t.stats.domainNotReady}
                 </p>
               )}
 
               {stats.themes.length === 0 ? (
-                <p className="muted">{copy.stats.noThemes}</p>
+                <p className="muted">{t.stats.noThemes}</p>
               ) : (
                 <div className="baskets">
                   {groups.map((g, gi) => {
-                    const books = g.themes.reduce((s, t) => s + t.total, 0);
-                    const done = g.themes.reduce((s, t) => s + t.completed, 0);
+                    const books = g.themes.reduce((s, th) => s + th.total, 0);
+                    const done = g.themes.reduce(
+                      (s, th) => s + th.completed,
+                      0,
+                    );
                     const pct = books > 0 ? Math.round((done / books) * 100) : 0;
                     const n = g.themes.length;
                     const fit = n > 1 ? (100 - 43.5) / (n - 1) : 10;
@@ -311,9 +339,9 @@ export default function StatsPage() {
                     return (
                       <div className="basket-block" key={g.domain}>
                         <div className="domain-head">
-                          <h2>{g.domain}</h2>
+                          <h2>{domainLabel(g.domain, locale)}</h2>
                           <span className="meta">
-                            {n} 个清单 · {books} 本 · 完成 {pct}%
+                            {t.stats.domainMeta(n, books, pct)}
                           </span>
                         </div>
                       <div className="basket" onClick={() => setLiftedId(null)}>
@@ -373,30 +401,32 @@ export default function StatsPage() {
                             } as CSSProperties
                           }
                         >
-                          {g.themes.map((t, i) => {
-                            const p = themePct(t);
+                          {g.themes.map((th, i) => {
+                            const p = themePct(th);
                             const isDone =
-                              t.total > 0 && t.completed >= t.total;
-                            const points = t.items.reduce(
+                              th.total > 0 && th.completed >= th.total;
+                            const points = th.items.reduce(
                               (s, it) => s + it.key_points.length,
                               0,
                             );
                             return (
                               <button
                                 type="button"
-                                className={`basket-card${liftedId === t.id ? " is-lifted" : ""}`}
-                                key={t.id}
+                                className={`basket-card${liftedId === th.id ? " is-lifted" : ""}`}
+                                key={th.id}
                                 style={{ "--i": i } as CSSProperties}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (liftedId === t.id) setOpenThemeId(t.id);
-                                  else setLiftedId(t.id);
+                                  if (liftedId === th.id) setOpenThemeId(th.id);
+                                  else setLiftedId(th.id);
                                 }}
                               >
-                                <span className="basket-name">{t.name}</span>
+                                <span className="basket-name">{th.name}</span>
                                 <span className="basket-meta">
-                                  {t.total} 本 · 已读 {t.completed}
-                                  {t.status === "priority" ? " · 优先" : ""}
+                                  {t.stats.basketMeta(th.total, th.completed)}
+                                  {th.status === "priority"
+                                    ? ` · ${t.stats.priorityTag}`
+                                    : ""}
                                 </span>
                                 <span className="basket-track">
                                   <span
@@ -406,7 +436,7 @@ export default function StatsPage() {
                                 </span>
                                 <span className="basket-foot">
                                   <span>{p}%</span>
-                                  <span>知识点 {points}</span>
+                                  <span>{t.stats.keyPoints(points)}</span>
                                 </span>
                               </button>
                             );
@@ -435,7 +465,9 @@ export default function StatsPage() {
                         </svg>
 
                         <span className="box-label">
-                          {books > 0 ? `${books} 本` : "空盒子"}
+                          {books > 0
+                            ? t.stats.booksCount(books)
+                            : t.stats.emptyBox}
                         </span>
                       </div>
                     </div>
@@ -447,18 +479,18 @@ export default function StatsPage() {
 
             <section className="stats-section">
               <div className="card-head done-head">
-                <span className="kicker">已读清单</span>
+                <span className="kicker">{t.stats.finishedTitle}</span>
                 {stats.completed_items.length > 0 && (
                   <button
                     className="btn-mini-line"
                     onClick={exportMarkdown}
                   >
-                    导出已读清单
+                    {t.stats.exportRead}
                   </button>
                 )}
               </div>
               {stats.completed_items.length === 0 ? (
-                <p className="muted">{copy.stats.noFinished}</p>
+                <p className="muted">{t.stats.noFinished}</p>
               ) : (
                 <div className="done-list">
                   {stats.completed_items.map((it) => (
@@ -469,9 +501,7 @@ export default function StatsPage() {
                       </div>
                       {it.completed_at && (
                         <span className="d">
-                          {new Date(it.completed_at)
-                            .toLocaleDateString("zh-CN")
-                            .replace(/\//g, ".")}
+                          {formatDay(it.completed_at, locale)}
                         </span>
                       )}
                     </div>
@@ -494,7 +524,7 @@ export default function StatsPage() {
             <div className="drawer-head">
               <div style={{ minWidth: 0 }}>
                 <span className="kicker">
-                  {domainOrDefault(openTheme.domain)}
+                  {domainLabel(openTheme.domain, locale)}
                 </span>
                 <h2 style={{ marginTop: 4 }}>{openTheme.name}</h2>
               </div>
@@ -502,7 +532,7 @@ export default function StatsPage() {
                 className="btn-quiet btn-sm"
                 onClick={closeTheme}
               >
-                关闭
+                {t.stats.close}
               </button>
             </div>
 
@@ -514,7 +544,7 @@ export default function StatsPage() {
             </div>
             <div className="progress-meta">
               <span>
-                {openTheme.completed}/{openTheme.total} 项
+                {t.stats.itemsProgress(openTheme.completed, openTheme.total)}
               </span>
               <span>{themePct(openTheme)}%</span>
             </div>
@@ -522,7 +552,7 @@ export default function StatsPage() {
             <div style={{ marginTop: 16 }}>
               {openTheme.items.length === 0 ? (
                 <p className="muted" style={{ fontSize: 12 }}>
-                  这个清单还没有书目。
+                  {t.stats.drawerEmpty}
                 </p>
               ) : (
                 openTheme.items.map((it, idx) => (
@@ -542,7 +572,7 @@ export default function StatsPage() {
                       ) : (
                         <span className="t">{it.title}</span>
                       )}
-                      <span className="chip">{itemState(it)}</span>
+                      <span className="chip">{itemState(it, t)}</span>
                     </div>
                     {it.progress !== null && (
                       <div className="basket-book-prog">
@@ -570,7 +600,8 @@ export default function StatsPage() {
             </div>
 
             <p className="muted" style={{ fontSize: 11, marginTop: 14 }}>
-              领域可改：<Link href="/themes">主题与清单 →</Link>
+              {t.stats.drawerEditDomain}
+              <Link href="/themes">{t.stats.drawerGoThemes}</Link>
             </p>
           </aside>
         </>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppNav from "@/components/AppNav";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/i18n";
 
 type Note = {
   id: string;
@@ -16,6 +17,7 @@ type Doc = { id: string; title: string; author: string | null };
 
 export default function NotesPage() {
   const supabase = createClient();
+  const { locale, t } = useI18n();
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<{ doc: Doc; notes: Note[] }[]>([]);
 
@@ -62,14 +64,17 @@ export default function NotesPage() {
   }
 
   function exportMarkdown() {
-    const lines: string[] = ["# 我的笔记", ""];
-    lines.push(`共 ${total} 条笔记，覆盖 ${groups.length} 本书`, "");
+    const lines: string[] = [t.notes.exportTitle, ""];
+    lines.push(t.notes.summary(total, groups.length), "");
     for (const g of groups) {
       const author = g.doc.author ? ` · ${escapeMarkdown(g.doc.author)}` : "";
       lines.push(`## ${escapeMarkdown(g.doc.title)}${author}`, "");
       for (const n of g.notes) {
         const body = escapeMarkdown(n.comment ?? "");
-        lines.push(`- ${body}  \`${new Date(n.created_at).toLocaleString()}\``);
+        const time = new Date(n.created_at).toLocaleString(
+          locale === "en" ? "en-US" : "zh-CN",
+        );
+        lines.push(`- ${body}  \`${time}\``);
       }
       lines.push("");
     }
@@ -80,7 +85,7 @@ export default function NotesPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "我的笔记.md";
+    a.download = t.notes.exportFileName;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -91,27 +96,23 @@ export default function NotesPage() {
       <div className="container app-main">
         <div className="page-head page-head-row">
           <div>
-            <span className="kicker">Notes</span>
-            <h1>我的笔记</h1>
+            <span className="kicker">{t.notes.kicker}</span>
+            <h1>{t.notes.title}</h1>
             {!loading && total > 0 && (
-              <p className="sub">
-                共 {total} 条笔记，覆盖 {groups.length} 本书
-              </p>
+              <p className="sub">{t.notes.summary(total, groups.length)}</p>
             )}
           </div>
           {!loading && total > 0 && (
             <button type="button" className="btn-ghost btn-sm" onClick={exportMarkdown}>
-              导出 Markdown
+              {t.notes.export}
             </button>
           )}
         </div>
 
-        {loading && <p className="muted">加载中…</p>}
+        {loading && <p className="muted">{t.notes.loading}</p>}
 
         {!loading && total === 0 && (
-          <p className="muted">
-            还没有笔记。阅读时选中正文即可添加批注，笔记会汇总到这里。
-          </p>
+          <p className="muted">{t.notes.empty}</p>
         )}
 
         {groups.map((g) => (
@@ -120,7 +121,7 @@ export default function NotesPage() {
               <Link href={`/books/${g.doc.id}/notes`} className="note-book">
                 {g.doc.title}
               </Link>
-              <span className="note-count">{g.notes.length} 条</span>
+              <span className="note-count">{t.notes.count(g.notes.length)}</span>
             </div>
             {g.notes.map((n) => (
               <Link
@@ -130,7 +131,9 @@ export default function NotesPage() {
               >
                 <span className="note-text">{n.comment}</span>
                 <span className="note-time">
-                  {new Date(n.created_at).toLocaleDateString()}
+                  {new Date(n.created_at).toLocaleDateString(
+                    locale === "en" ? "en-US" : "zh-CN",
+                  )}
                 </span>
               </Link>
             ))}

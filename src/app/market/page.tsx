@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import AppNav from "@/components/AppNav";
-import { copy } from "@/lib/copy";
+import { useI18n } from "@/i18n";
 
 type Book = { title: string; author: string; reason: string };
 type Template = {
@@ -17,8 +17,11 @@ type Template = {
 };
 
 export default function MarketPage() {
+  const { t } = useI18n();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(
+    null,
+  );
   const [cloningId, setCloningId] = useState<string | null>(null);
   const [randomTemplate, setRandomTemplate] = useState<Template | null>(null);
   const [generatingRandom, setGeneratingRandom] = useState(false);
@@ -27,42 +30,49 @@ export default function MarketPage() {
     fetch("/api/market")
       .then((r) => r.json())
       .then((json) => {
-        if (json.error) setMessage(json.error);
+        if (json.error) setMessage({ text: json.error, ok: false });
         else setTemplates(json.templates ?? []);
       })
-      .catch(() => setMessage(copy.market.loadFailed));
+      .catch(() => setMessage({ text: t.market.loadFailed, ok: false }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function useTemplate(t: Template) {
-    setCloningId(t.id);
-    setMessage("");
+  async function useTemplate(tpl: Template) {
+    setCloningId(tpl.id);
+    setMessage(null);
     const res = await fetch("/api/market", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        t.generated ? { template: t } : { template_id: t.id },
+        tpl.generated ? { template: tpl } : { template_id: tpl.id },
       ),
     });
     const json = await res.json().catch(() => ({}));
     setCloningId(null);
     if (res.ok) {
-      if (t.generated) setRandomTemplate(null);
-      setMessage(copy.market.applied(t.name));
+      if (tpl.generated) setRandomTemplate(null);
+      setMessage({ text: t.market.applied(tpl.name), ok: true });
     } else {
-      setMessage(copy.market.applyFailed(json.error ?? res.status));
+      setMessage({
+        text: t.market.applyFailed(json.error ?? res.status),
+        ok: false,
+      });
     }
   }
 
   async function generateRandom() {
     setGeneratingRandom(true);
-    setMessage("");
+    setMessage(null);
     const res = await fetch("/api/market/random", { method: "POST" });
     const json = await res.json().catch(() => ({}));
     setGeneratingRandom(false);
     if (res.ok && json.template) {
       setRandomTemplate(json.template);
     } else {
-      setMessage(copy.market.randomFailed(json.error ?? res.status));
+      setMessage({
+        text: t.market.randomFailed(json.error ?? res.status),
+        ok: false,
+      });
     }
   }
 
@@ -72,22 +82,22 @@ export default function MarketPage() {
       <div className="container app-main">
         <div className="page-head page-head-row">
           <div>
-            <span className="kicker">Market</span>
-            <h1>阅读路径灵感集</h1>
-            <p className="sub">{copy.market.intro}</p>
+            <span className="kicker">{t.market.kicker}</span>
+            <h1>{t.market.title}</h1>
+            <p className="sub">{t.market.intro}</p>
           </div>
           <button
             className="btn-line btn-sm"
             onClick={generateRandom}
             disabled={generatingRandom}
           >
-            {generatingRandom ? "AI 生成中…" : "随机生成一份"}
+            {generatingRandom ? t.market.generating : t.market.randomCta}
           </button>
         </div>
 
         {message && (
-          <p className={`message ${message.startsWith("已") ? "ok" : "err"}`}>
-            {message}
+          <p className={`message ${message.ok ? "ok" : "err"}`}>
+            {message.text}
           </p>
         )}
 
@@ -95,7 +105,7 @@ export default function MarketPage() {
           <section className="theme-card" style={{ marginBottom: 26 }}>
             <div className="theme-head">
               <div style={{ minWidth: 0 }}>
-                <span className="kicker">AI 随机生成</span>
+                <span className="kicker">{t.market.randomKicker}</span>
                 <h1 style={{ marginTop: 6 }}>{randomTemplate.name}</h1>
                 <p className="sub" style={{ margin: "6px 0 0" }}>
                   {randomTemplate.tagline || randomTemplate.description}
@@ -107,27 +117,31 @@ export default function MarketPage() {
                   onClick={() => useTemplate(randomTemplate)}
                   disabled={cloningId === randomTemplate.id}
                 >
-                  {cloningId === randomTemplate.id ? "使用中…" : "使用此清单"}
+                  {cloningId === randomTemplate.id
+                    ? t.market.using
+                    : t.market.useList}
                 </button>
                 <button
                   className="btn-ghost btn-sm"
                   onClick={generateRandom}
                   disabled={generatingRandom}
                 >
-                  {generatingRandom ? "生成中…" : "换一份"}
+                  {generatingRandom ? t.market.regenerating : t.market.regenerate}
                 </button>
               </div>
             </div>
 
             <div className="theme-stats">
               <div className="stat">
-                <div className="k">书目</div>
-                <div className="v">{randomTemplate.books.length} 本</div>
+                <div className="k">{t.market.booksLabel}</div>
+                <div className="v">
+                  {t.market.booksCount(randomTemplate.books.length)}
+                </div>
               </div>
               <div className="stat">
-                <div className="k">每日预算</div>
+                <div className="k">{t.market.budgetLabel}</div>
                 <div className="v">
-                  {randomTemplate.daily_budget_minutes} 分钟
+                  {t.market.minutes(randomTemplate.daily_budget_minutes)}
                 </div>
               </div>
             </div>
@@ -188,27 +202,29 @@ export default function MarketPage() {
                 </div>
               ))}
               <p className="muted" style={{ margin: "12px 0 0" }}>
-                使用后可在「主题与清单」里微调顺序与预算。
+                {t.market.afterUseTip}
               </p>
             </div>
           </section>
         )}
 
         {templates.length === 0 ? (
-          <p className="muted">加载中…</p>
+          <p className="muted">{t.market.loading}</p>
         ) : (
           <div className="market-cards" style={{ marginTop: 8 }}>
-            {templates.map((t) => (
-              <div className="listcard" key={t.id}>
+            {templates.map((tpl) => (
+              <div className="listcard" key={tpl.id}>
                 <div className="top">
-                  <h2 className="n">{t.name}</h2>
-                  <span className="chip">{t.books.length} 本</span>
+                  <h2 className="n">{tpl.name}</h2>
+                  <span className="chip">
+                    {t.market.booksCount(tpl.books.length)}
+                  </span>
                 </div>
-                <p className="d">{t.tagline || t.description}</p>
+                <p className="d">{tpl.tagline || tpl.description}</p>
                 <details className="plain">
-                  <summary>展开书目</summary>
+                  <summary>{t.market.expand}</summary>
                   <ol>
-                    {t.books.map((b, i) => (
+                    {tpl.books.map((b, i) => (
                       <li key={i}>
                         {b.title}
                         {b.author ? ` · ${b.author}` : ""}
@@ -217,14 +233,16 @@ export default function MarketPage() {
                   </ol>
                 </details>
                 <div className="foot">
-                  <span className="chip">每天 {t.daily_budget_minutes} 分钟</span>
+                  <span className="chip">
+                    {t.market.perDay(tpl.daily_budget_minutes)}
+                  </span>
                   <button
                     className="btn-line btn-sm"
                     style={{ marginLeft: "auto" }}
-                    onClick={() => useTemplate(t)}
-                    disabled={cloningId === t.id}
+                    onClick={() => useTemplate(tpl)}
+                    disabled={cloningId === tpl.id}
                   >
-                    {cloningId === t.id ? "使用中…" : "使用此清单"}
+                    {cloningId === tpl.id ? t.market.using : t.market.useList}
                   </button>
                 </div>
               </div>
@@ -233,8 +251,8 @@ export default function MarketPage() {
         )}
 
         <p className="muted" style={{ margin: "30px 0 0" }}>
-          这些书单里的书默认是「待补充」状态，去「主题与清单」点「刷新」会自动匹配库内已有的书。{" "}
-          <Link href="/themes">去我的主题与清单 →</Link>
+          {t.market.pendingTip}{" "}
+          <Link href="/themes">{t.market.goThemes}</Link>
         </p>
       </div>
     </>
