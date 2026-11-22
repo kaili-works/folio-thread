@@ -4,7 +4,7 @@ English · [简体中文](README.md)
 
 ### An AI reading planner for cross-disciplinary learners.
 
-it is built for those who want to systematically explore one or multiple unfamiliar domains but don't know where to start. The AI curates a progressive reading list based on your goals and breaks it down into digestible daily portions that fit your time budget.
+It is built for those who want to systematically explore one or multiple unfamiliar domains but don't know where to start. The AI curates a progressive reading list based on your goals and breaks it down into digestible daily portions that fit your time budget.
 
 > **This is a self-hosted project with no official hosted version.** You need your own Supabase project, an LLM API key (DeepSeek or any OpenAI-compatible provider), and optionally a WeRead API key (not required for the app to function). The Quick Start below gets you running in about five minutes.
 
@@ -17,19 +17,27 @@ In the age of AI, we often need to learn across fields quickly. Existing reading
 
 - **AI reading plan**: Give it a subject and AI returns 5–6 books, ordered from easier to harder, each with a recommendation and its key concepts. Adjust the whole list in one sentence, or just swap a single book or reorder the list.
 - **Private library**: Collect the EPUBs for the list yourself and upload them to your library. If you have a WeRead account and choose to configure a WeRead API key, it also provides direct links to WeRead. This saves some searching, but specialised books in some fields may not be on WeRead and still need to be found yourself.
-- **Today's reading**: Using your daily budget and reading speed, it slices the uploaded books into today's chapters (hiding the rest)  until the whole list is finished; several lists can progress in parallel.
-- **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. However,if you have high standards for typography, FolioThread may disappoint you.
+- **Today's reading**: Using your daily budget and reading speed, it slices the uploaded books into today's chapters (hiding the rest) until the whole list is finished; several lists can progress in parallel.
+- **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. However, if you have high standards for typography, FolioThread may disappoint you.
 - **Domain review**: Classifies and visualises all of your reading lists by domain, so you can see every field you are exploring or have explored.
 
 ## Demo
 
 <p align="center">
-  <img src="docs/media/today-reading.gif" width="360" alt="Generate today's reading" />
-  <img src="docs/media/themes-adjust.gif" width="360" alt="Adjust a list in one sentence" />
-  <img src="docs/media/reader-audio.gif" width="360" alt="Listen in the reader" />
+  <img src="docs/media/en-create-theme.gif" width="360" alt="Create a theme, AI drafts the list, switch list / path views" />
+  <img src="docs/media/en-adjust-list.gif" width="360" alt="Fine-tune a list: reorder, swap, shelve and confirm" />
+  <img src="docs/media/en-upload-library.gif" width="360" alt="Upload an EPUB to the library" />
 </p>
+<p align="center"><sub>1 · Create a theme, AI drafts the list; list / path views　　2 · Fine-tune: reorder, swap, shelve, confirm　　3 · Upload an EPUB</sub></p>
 
-Left to right: generating today's reading · adjusting a list in one sentence · listening in the reader (sample data).
+<p align="center">
+  <img src="docs/media/en-today-reading.gif" width="360" alt="Generate today's reading" />
+  <img src="docs/media/en-reader-finish.gif" width="360" alt="Finish a chapter and move to the next" />
+  <img src="docs/media/en-stats-domain.gif" width="360" alt="Domain baskets and list cards in stats" />
+</p>
+<p align="center"><sub>4 · Generate today's reading　　5 · Finish a chapter, move on　　6 · Review by domain in stats</sub></p>
+
+The theme used here is “Embodied AI”. Demo data is mocked locally and belongs to no real account.
 
 ## Quick start (about 5 minutes)
 
