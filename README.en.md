@@ -2,20 +2,23 @@
 
 English · [简体中文](README.md)
 
-**An AI reading planner for curious learners: it is built for readers who want to explore one or more unfamiliar fields systematically but don't know where to start. AI builds an easier-to-harder reading list from your request and splits it into daily portions that fit your time budget.**
+### An AI reading planner for cross-disciplinary learners.
 
-> **This is a self-hosted project with no official hosted version.** You need your own Supabase project, an LLM API key (DeepSeek or any OpenAI-compatible provider), and optionally a WeRead API key; the Quick start below gets you running in about five minutes.
+it is built for those who want to systematically explore one or multiple unfamiliar domains but don't know where to start. The AI curates a progressive reading list based on your goals and breaks it down into digestible daily portions that fit your time budget.
+
+> **This is a self-hosted project with no official hosted version.** You need your own Supabase project, an LLM API key (DeepSeek or any OpenAI-compatible provider), and optionally a WeRead API key (not required for the app to function). The Quick Start below gets you running in about five minutes.
 
 ## Why this exists
 
-In the age of AI we often need to learn across fields quickly. Existing reading tools already do book recommendations, immersive reading, tracking, supervision, and review well. What is often missing is a tool that assembles these scattered pieces into one chain: plan as a guide → break the work into tasks → read every day. FolioThread first uses AI to generate an ordered reading list, then splits that list into daily portions you can actually finish, so systematic learning stays clear and sustainable.
+In the age of AI, we often need to learn across fields quickly. Existing reading tools already handle book recommendations, immersive reading, tracking, and review well. However, what is often missing is a cohesive tool that assembles these scattered pieces into a single workflow: plan as a guide → break work into tasks → read every day. 
+
 
 ## Core features
 
 - **AI reading plan**: Give it a subject and AI returns 5–6 books, ordered from easier to harder, each with a recommendation and its key concepts. Adjust the whole list in one sentence, or just swap a single book or reorder the list.
-- **Private library**: Collect the EPUBs for the list yourself and upload them to your library. If you have a WeRead account and choose to configure a WeRead API key, the app also provides direct links to WeRead. This saves some searching, but specialised books in some fields may not be on WeRead and still need to be found yourself.
-- **Today's reading**: Using your daily budget and reading speed, it cuts today's chapters from the uploaded books in the list (the rest stay hidden) until the whole list is finished; several lists can progress in parallel.
-- **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. If you have high standards for typography, FolioThread may disappoint you.
+- **Private library**: Collect the EPUBs for the list yourself and upload them to your library. If you have a WeRead account and choose to configure a WeRead API key, it also provides direct links to WeRead. This saves some searching, but specialised books in some fields may not be on WeRead and still need to be found yourself.
+- **Today's reading**: Using your daily budget and reading speed, it slices the uploaded books into today's chapters (hiding the rest)  until the whole list is finished; several lists can progress in parallel.
+- **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. However,if you have high standards for typography, FolioThread may disappoint you.
 - **Domain review**: Classifies and visualises all of your reading lists by domain, so you can see every field you are exploring or have explored.
 
 ## Demo
@@ -108,17 +111,25 @@ The service listens on port `3000`. For remote access, use a Tailscale domain; o
 
 ### Using another LLM
 
-Text generation goes through the OpenAI-compatible `/chat/completions` API and defaults to DeepSeek. To use OpenAI:
+Text generation goes through the OpenAI-compatible `/chat/completions` API and defaults to DeepSeek. Most model services provide a compatible endpoint, so no code changes are needed. For example, Alibaba Cloud Model Studio (Qwen):
 
 ```ini
-AI_PROVIDER=openai
 AI_API_KEY=sk-...
-AI_MODEL=gpt-4o-mini
+AI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
+AI_MODEL=qwen-plus
 ```
 
-You can also set only `AI_API_KEY` and `AI_MODEL=gpt-4o-mini`; the provider is inferred from the model name. `AI_BASE_URL` is for self-hosted proxies or other compatible services and must be the full URL (including `/chat/completions`). The old `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` variables still work.
+Or Zhipu GLM:
 
-Claude's native API uses a different protocol; connect it through an OpenAI-compatible gateway such as OpenRouter, LiteLLM, or one-api.
+```ini
+AI_API_KEY=...
+AI_BASE_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
+AI_MODEL=glm-4-flash
+```
+
+Moonshot Kimi, SiliconFlow, Volcengine Ark, and local Ollama / vLLM work the same way: fill in their compatible URL and model name (check each provider's console). When using a custom URL, also set `AI_MODEL`; otherwise it falls back to the DeepSeek default model. The old `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` variables still work.
+
+OpenAI direct access is unavailable on some networks; Claude's native API uses a different protocol and needs a gateway such as OpenRouter or LiteLLM. Neither is required.
 
 ## Background music (optional)
 
