@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
-import { MARKET_TEMPLATES } from "@/lib/market";
+import {
+  MARKET_TEMPLATES,
+  localizeMarketTemplate,
+  marketTemplatesFor,
+} from "@/lib/market";
+import { getRequestLocale } from "@/lib/request-locale";
 import { errorResponse } from "@/lib/api-response";
 
-// 列出书单市集模板
+// 列出书单市集模板（按界面语言返回）
 export async function GET() {
   try {
     await requireUser();
-    return NextResponse.json({ templates: MARKET_TEMPLATES });
+    const locale = await getRequestLocale();
+    return NextResponse.json({ templates: marketTemplatesFor(locale) });
   } catch (e) {
     return errorResponse(e);
   }
@@ -19,6 +25,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
+    const locale = await getRequestLocale();
     const body = await request.json();
     const templateId = body?.template_id as string | undefined;
     const generated = body?.template as
@@ -39,7 +46,7 @@ export async function POST(request: Request) {
     if (templateId) {
       const found = MARKET_TEMPLATES.find((t) => t.id === templateId);
       if (!found) throw new ApiError(404, "模板不存在");
-      tpl = found;
+      tpl = localizeMarketTemplate(found, locale);
     } else if (generated) {
       const name = String(generated.name ?? "").trim();
       if (!name) throw new ApiError(400, "生成的清单缺少主题名称");
@@ -92,6 +99,7 @@ export async function POST(request: Request) {
       reading_list_id: list.id,
       order_index: i + 1,
       reason: b.reason,
+      lang: locale,
       estimated_minutes: 30,
       source: "ai_web",
       status: "unread",
