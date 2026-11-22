@@ -1,5 +1,7 @@
 # FolioThread · 页脉研读
 
+[English](README.en.md) · 简体中文
+
 Turn a question into a reading plan: generate a themed book list, read a little every day, and keep notes in one place.
 
 把一句想研究的问题变成一个主题，自动拆成每日可读的清单，读完留下笔记与统计。
@@ -9,7 +11,7 @@ Turn a question into a reading plan: generate a themed book list, read a little 
 ### 1. 建库（Supabase）
 
 1. 新建一个 Supabase 项目。
-2. 打开 **SQL Editor**，整段执行 [`database/init.sql`](database/init.sql)（等价于按 `0001`→`0008` 顺序执行迁移）。
+2. 打开 **SQL Editor**，整段执行 [`database/init.sql`](database/init.sql)（等价于按 `0001`→`0009` 顺序执行迁移）。
 3. 打开 **Storage**，新建一个 **私有** bucket，名字必须是 `shared`。
 4. 打开 **Authentication → Providers → Email**，关闭 **Confirm email**（否则注册后无法直接登录）。
 
@@ -76,7 +78,7 @@ npm start
 
 | 变量 | 缺失时的表现 |
 | --- | --- |
-| `DEEPSEEK_API_KEY` | 清单走规则生成；翻译、归类、知识点提示不可用 |
+| `DEEPSEEK_API_KEY` | 生成 / 重新生成清单直接返回 **503**，不用书库兜底；翻译与主题归类不可用；知识点静默失败 |
 | `WEREAD_API_KEY` | 隐藏「微信读书可读」入口与标签 |
 | `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | 未配置则跳过 Azure；语音依次尝试 Azure → 本机 edge-tts → 百度，云端全部失败才回退浏览器内置语音 |
 | `EDGE_TTS_PYTHON` | 手动指定 edge-tts 使用的 Python 路径；缺省自动探测 |
@@ -129,3 +131,5 @@ npm run import -- ./path/to/book.epub
 ## License
 
 代码以 MIT 发布，见 [LICENSE](LICENSE)。第三方背景音乐不入库，来源与许可见 [NOTICE](NOTICE)；仓库内的兜底音频由 `scripts/make_audio.py` 合成，以 CC0 发布。
+
+版本记录见 [CHANGELOG.md](CHANGELOG.md)，安全问题报告方式见 [SECURITY.md](SECURITY.md)。

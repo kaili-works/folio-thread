@@ -1,0 +1,97 @@
+name: Bug report / 问题反馈
+description: 报告可复现的缺陷或异常行为
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈。提交前请先搜索已有 Issue，并确认问题能在最新版本复现。
+
+        **不要粘贴**真实邮箱、Supabase 密钥、数据库连接串、书籍正文或笔记内容。日志请先脱敏。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 简明描述实际行为，以及你期望的行为。
+      placeholder: 例如：在主题页点「换一本」后一直停在「换书中…」。
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从哪个页面开始、点了什么、等了多久。
+      placeholder: |
+        1. 登录后进入 /themes
+        2. 选中一个主题
+        3. 点击清单行的「换一本」
+        4. 按钮一直不恢复
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本或提交号
+      description: 页脚版本、`package.json` 的 version，或 git commit。
+      placeholder: 0.1.0 / 4ea624e
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: 运行方式
+      options:
+        - 本机 npm run dev
+        - 本机 npm run build && npm start
+        - Docker / docker compose
+        - 其它（请在下方说明）
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      description: 操作系统、浏览器版本、是否安装为 PWA。
+      placeholder: Windows 11 · Chrome 131 · 非 PWA
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 相关模块
+      multiple: true
+      options:
+        - 登录 / 账户
+        - 主题与清单
+        - 今日阅读包
+        - 阅读器
+        - 听书 / 语音
+        - 笔记
+        - 统计
+        - 书单市集
+        - 书库 / EPUB 导入
+        - 部署 / 数据库
+        - 界面语言 / 排版
+        - 其它
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: 可选。请先删除密钥、邮箱与书籍内容；截图同一页即可。
+      render: shell
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: 确认
+      options:
+        - label: 我已搜索过现有 Issue，且问题能在最新版本复现
+          required: true
+        - label: 我确认内容中不含密钥、真实邮箱、书籍正文或笔记数据
+          required: true
