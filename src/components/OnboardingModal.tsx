@@ -45,15 +45,12 @@ function Motif({ variant }: { variant: 1 | 2 | 3 }) {
           {/* 叶：菱形纸片（与页脉标记同形） */}
           <g transform="translate(222 124) rotate(-34)">
             <path d="M0-20 20 0 0 20-20 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
-            <path d="M-7-7 7 7" stroke="#9aab8f" strokeWidth={1.3} />
           </g>
           <g transform="translate(263 95) rotate(26)">
             <path d="M0-19 19 0 0 19-19 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
-            <path d="M-7-7 7 7" stroke="#9aab8f" strokeWidth={1.3} />
           </g>
           <g transform="translate(245 64) rotate(8)">
             <path d="M0-13 13 0 0 13-13 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.3} />
-            <path d="M-5-5 5 5" stroke="#9aab8f" strokeWidth={1.2} />
           </g>
         </>
       )}
@@ -64,19 +61,15 @@ function Motif({ variant }: { variant: 1 | 2 | 3 }) {
           <path d="M56 148 C 124 144 176 128 226 108 C 280 86 340 66 424 60" />
           <g transform="translate(112 126) rotate(-32)">
             <path d="M0-17 17 0 0 17-17 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
-            <path d="M-6-6 6 6" stroke="#9aab8f" strokeWidth={1.2} />
           </g>
           <g transform="translate(212 104) rotate(26)">
             <path d="M0-16 16 0 0 16-16 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
-            <path d="M-6-6 6 6" stroke="#9aab8f" strokeWidth={1.2} />
           </g>
           <g transform="translate(246 79) rotate(-28)">
             <path d="M0-16 16 0 0 16-16 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
-            <path d="M-6-6 6 6" stroke="#9aab8f" strokeWidth={1.2} />
           </g>
           <g transform="translate(346 55) rotate(26)">
             <path d="M0-15 15 0 0 15-15 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
-            <path d="M-5-5 5 5" stroke="#9aab8f" strokeWidth={1.2} />
           </g>
           <circle cx="424" cy="60" r="3" stroke="#9aab8f" strokeWidth={1.6} />
         </>

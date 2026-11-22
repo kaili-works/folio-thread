@@ -4077,7 +4077,7 @@ body:has(.auth-split) {
   width: 300px;
   height: 380px;
   opacity: 0.2;
-  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160' fill='none' stroke='%23a9b8a0' stroke-width='3' stroke-linecap='round'><path d='M60 140 V60'/><path d='M60 96 C40 92 28 78 26 60 C44 58 58 70 60 88'/><path d='M60 74 C62 54 76 40 96 38 C98 58 84 72 62 76'/></svg>") no-repeat center / contain;
+  background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 160' fill='none' stroke='%23a9b8a0' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='M60 140 V50'/><path d='M38.5 56.8 63.2 70.5 49.5 95.2 24.8 81.5Z'/><path d='M80.7 35.3 90.7 58.7 67.3 68.7 57.3 45.3Z'/></svg>") no-repeat center / contain;
 }
 
 /* 文字压在叶脉装饰之上，保证步骤与底部品牌语不被线条穿过 */
@@ -4260,7 +4260,7 @@ body:has(.auth-split) {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f6a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21.2V10.4'/%3E%3Cpath d='M12 14.4 10.6 13.2M12 11.6 13.4 10.4'/%3E%3Cpath d='M7.24 6.94 11.56 9.34 9.16 13.66 4.84 11.26Z'/%3E%3Cpath d='M6.72 9.48 9.68 11.12'/%3E%3Cpath d='M16.96 5.13 18.67 9.16 14.64 10.87 12.93 6.84Z'/%3E%3Cpath d='M15.19 6.57 16.41 9.43'/%3E%3C/svg%3E")
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f6a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21.2V10.4'/%3E%3Cpath d='M12 14.4 10.6 13.2M12 11.6 13.4 10.4'/%3E%3Cpath d='M7.24 6.94 11.56 9.34 9.16 13.66 4.84 11.26Z'/%3E%3Cpath d='M16.96 5.13 18.67 9.16 14.64 10.87 12.93 6.84Z'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
 
