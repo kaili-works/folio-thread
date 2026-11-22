@@ -1,4 +1,5 @@
 import type { Dict } from "./index";
+import { formatDuration } from "@/lib/format";
 
 // 英文文案：结构与 zh.ts 一一对应，缺键或多键都会在类型检查时报错。
 export const en: Dict = {
@@ -20,7 +21,7 @@ export const en: Dict = {
   },
   themes: {
     kicker: "Themes & lists",
-    title: "Themes & reading lists",
+    title: "Themes & lists",
     nameLabel: "Theme name",
     namePlaceholder: "e.g. Urban sociology",
     descLabel: "Describe the theme in your own words",
@@ -39,8 +40,8 @@ export const en: Dict = {
     manage: "Manage",
     manageClose: "Done",
     railMeta: (books: number, read: number, minutes: number) =>
-      `${books} ${books === 1 ? "book" : "books"} · ${read} read · ${minutes} min/day`,
-    railMetaShort: (minutes: number) => `${minutes} min/day`,
+      `${books} ${books === 1 ? "book" : "books"} · ${read} read · ${formatDuration(minutes, "en")}/day`,
+    railMetaShort: (minutes: number) => `${formatDuration(minutes, "en")}/day`,
     priority: "Priority",
     unpriority: "Remove priority",
     domainLabel: "Reading domain",
@@ -104,6 +105,12 @@ export const en: Dict = {
     shelve: "Shelve",
     restore: "Restore",
     remove: "Delete",
+    reasonOtherLanguage: "This recommendation was written in another language.",
+    rewriteReason: "Rewrite in English",
+    rewritingReason: "Rewriting…",
+    reasonRewritten: "Recommendation rewritten in English",
+    reasonRewriteFailed: (error: string | number) =>
+      `Couldn't rewrite the reason: ${error}`,
     confirmReplace: (title: string) =>
       `Swapping will replace “${title}” with a new AI recommendation.`,
     confirmDelete: (title: string) =>
@@ -193,22 +200,23 @@ export const en: Dict = {
   today: {
     title: "Today's reading",
     metaChapters: (chapters: number, minutes: number) =>
-      `${chapters} chapter${chapters === 1 ? "" : "s"} · about ${minutes} min`,
+      `${chapters} chapter${chapters === 1 ? "" : "s"} · about ${formatDuration(minutes, "en")}`,
     metaItems: (items: number, minutes: number) =>
-      `${items} item${items === 1 ? "" : "s"} · about ${minutes} min`,
+      `${items} item${items === 1 ? "" : "s"} · about ${formatDuration(minutes, "en")}`,
     regenerate: "Regenerate today's reading",
     settings: "Reading settings",
     generating: "Generating…",
     progressChapters: (pct: number, done: number, total: number) =>
       `${pct}% done · ${done} / ${total} chapters`,
     progressPlain: (pct: number) => `${pct}% done`,
-    plannedMinutes: (minutes: number) => `about ${minutes} min`,
+    plannedMinutes: (minutes: number) => `about ${formatDuration(minutes, "en")}`,
     readingOrder: (n: number) => `reading order ${String(n).padStart(2, "0")}`,
     chapterOne: (chapter: number, minutes: number) =>
-      `Chapter ${chapter} · ${minutes} min`,
+      `Chapter ${chapter} · ${formatDuration(minutes, "en")}`,
     chapterRange: (start: number, end: number, minutes: number) =>
-      `Chapters ${start}–${end} · ${minutes} min`,
-    wereadChip: (minutes: number) => `WeRead · about ${minutes} min`,
+      `Chapters ${start}–${end} · ${formatDuration(minutes, "en")}`,
+    wereadChip: (minutes: number) =>
+      `WeRead · about ${formatDuration(minutes, "en")}`,
     startReading: "Start reading",
     openWeread: "Read on WeRead",
     unknownBook: "Untitled book",
@@ -474,8 +482,8 @@ export const en: Dict = {
     booksLabel: "Books",
     budgetLabel: "Daily budget",
     booksCount: (n: number) => `${n} ${n === 1 ? "book" : "books"}`,
-    minutes: (n: number) => `${n} min`,
-    perDay: (n: number) => `${n} min a day`,
+    minutes: (n: number) => formatDuration(n, "en"),
+    perDay: (n: number) => `${formatDuration(n, "en")} a day`,
     afterUseTip:
       "After adding it, you can fine-tune order and budget in Themes & lists.",
     loading: "Loading…",

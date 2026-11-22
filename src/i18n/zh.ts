@@ -1,4 +1,6 @@
 // 中文文案。新增文案先加到这里，再在 en.ts 补对应英文，类型会强制两边对齐。
+import { formatDuration } from "@/lib/format";
+
 export const zh = {
   nav: {
     brandAlt: "页脉研读",
@@ -36,8 +38,9 @@ export const zh = {
     manage: "管理",
     manageClose: "收起",
     railMeta: (books: number, read: number, minutes: number) =>
-      `${books} 本 · 已读 ${read} · 每天 ${minutes} 分钟`,
-    railMetaShort: (minutes: number) => `每天 ${minutes} 分钟`,
+      `${books} 本 · 已读 ${read} · 每天 ${formatDuration(minutes, "zh")}`,
+    railMetaShort: (minutes: number) =>
+      `每天 ${formatDuration(minutes, "zh")}`,
     priority: "优先",
     unpriority: "取消优先",
     domainLabel: "阅读领域",
@@ -101,6 +104,11 @@ export const zh = {
     shelve: "搁置",
     restore: "恢复",
     remove: "删除",
+    reasonOtherLanguage: "这条推荐理由不是当前界面语言。",
+    rewriteReason: "按当前语言重写",
+    rewritingReason: "重写中…",
+    reasonRewritten: "推荐理由已按当前语言重写",
+    reasonRewriteFailed: (error: string | number) => `重写理由失败：${error}`,
     confirmReplace: (title: string) =>
       `换一本会把《${title}》换成 AI 重新推荐的一本。`,
     confirmDelete: (title: string) =>
@@ -177,22 +185,24 @@ export const zh = {
   today: {
     title: "今日阅读",
     metaChapters: (chapters: number, minutes: number) =>
-      `${chapters} 章 · 约 ${minutes} 分钟`,
+      `${chapters} 章 · 约 ${formatDuration(minutes, "zh")}`,
     metaItems: (items: number, minutes: number) =>
-      `${items} 份 · 约 ${minutes} 分钟`,
+      `${items} 份 · 约 ${formatDuration(minutes, "zh")}`,
     regenerate: "重新生成今日包",
     settings: "阅读偏好",
     generating: "生成中…",
     progressChapters: (pct: number, done: number, total: number) =>
       `已完成 ${pct}% · ${done} / ${total} 章`,
     progressPlain: (pct: number) => `已完成 ${pct}%`,
-    plannedMinutes: (minutes: number) => `预计 ${minutes} 分钟`,
+    plannedMinutes: (minutes: number) =>
+      `预计 ${formatDuration(minutes, "zh")}`,
     readingOrder: (n: number) => `阅读顺序 ${String(n).padStart(2, "0")}`,
     chapterOne: (chapter: number, minutes: number) =>
-      `第 ${chapter} 章 · ${minutes} 分钟`,
+      `第 ${chapter} 章 · ${formatDuration(minutes, "zh")}`,
     chapterRange: (start: number, end: number, minutes: number) =>
-      `第 ${start}–${end} 章 · ${minutes} 分钟`,
-    wereadChip: (minutes: number) => `微信读书 · 建议 ${minutes} 分钟`,
+      `第 ${start}–${end} 章 · ${formatDuration(minutes, "zh")}`,
+    wereadChip: (minutes: number) =>
+      `微信读书 · 建议 ${formatDuration(minutes, "zh")}`,
     startReading: "开始阅读",
     openWeread: "去微信读书阅读",
     unknownBook: "未知书名",
@@ -449,8 +459,8 @@ export const zh = {
     booksLabel: "书目",
     budgetLabel: "每日预算",
     booksCount: (n: number) => `${n} 本`,
-    minutes: (n: number) => `${n} 分钟`,
-    perDay: (n: number) => `每天 ${n} 分钟`,
+    minutes: (n: number) => formatDuration(n, "zh"),
+    perDay: (n: number) => `每天 ${formatDuration(n, "zh")}`,
     afterUseTip: "使用后可在「主题与清单」里微调顺序与预算。",
     loading: "加载中…",
     expand: "展开书目",
