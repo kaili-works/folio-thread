@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getRequestLocale } from "@/lib/request-locale";
+import { marketPrompt, outputLanguageRule } from "@/lib/ai-locale";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
 
 const DEEPSEEK_URL = getDeepSeekUrl();
 const MODEL = "deepseek-flash";
@@ -34,7 +38,7 @@ export async function POST() {
     const user = await requireUser();
     if (!rateLimit(`market-random:${user.id}`, 10, 60_000)) {
       return NextResponse.json(
-        { error: "换一本过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "换一本过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
@@ -43,19 +47,24 @@ export async function POST() {
     if (!apiKey) throw new ApiError(500, "未配置 DEEPSEEK_API_KEY");
 
     const domain = pick(DOMAINS);
+    const locale = await getRequestLocale();
 
-    const system = [
-      "你是阅读规划助手，负责为「书单市集」随机设计一个具体、可执行的研究主题，并给出循序书单。",
-      "主题要具体、有抓手，不要写成泛泛的「XX入门」。",
-      "只输出 JSON，不要任何解释。",
-    ].join("\n");
+    const system =
+      locale === "en"
+        ? [
+            "You design reading themes for a book-list market: one concrete, actionable research theme plus an ordered reading list.",
+            "The theme must be specific with a clear angle, never a vague “introduction to X”.",
+            "Output JSON only, no explanation.",
+          ].join("\n")
+        : [
+            "你是阅读规划助手，负责为「书单市集」随机设计一个具体、可执行的研究主题，并给出循序书单。",
+            "主题要具体、有抓手，不要写成泛泛的「XX入门」。",
+            "只输出 JSON，不要任何解释。",
+          ].join("\n");
 
     const userPrompt = [
-      `本次随机领域：${domain}。请在该领域内自选一个具体的切入角度。`,
-      "生成：主题名称（4-12 字）、一句话卖点（12-24 字）、主题描述（30-60 字，说明为什么这样读、读完能获得什么）。",
-      "再推荐 5-7 本可循序渐进阅读的书，优先经典或易获得的版本，按由浅入深排序。",
-      "每本书给 60-90 字中文推荐理由，按三部分来写：1) 它在序列里的位置与前后关系；2) 作者身份、代表作或领域权威性；3) 获奖、畅销、经典或标准教材等，只写有把握的事实，不确定就不写，禁止编造。禁止「很重要」「值得一读」这类空话。",
-      '输出格式：{"name":"主题名","tagline":"一句话卖点","description":"主题描述","books":[{"title":"书名","author":"作者","reason":"推荐理由"}]}',
+      ...marketPrompt(locale, domain),
+      outputLanguageRule(locale),
     ].join("\n");
 
     const res = await fetch(DEEPSEEK_URL, {
@@ -88,9 +97,17 @@ export async function POST() {
       throw new ApiError(502, "AI 生成失败：返回格式异常");
     }
 
-    const name = String(parsed?.name ?? "").trim().slice(0, 60);
-    const tagline = String(parsed?.tagline ?? "").trim().slice(0, 60);
-    const description = String(parsed?.description ?? "").trim().slice(0, 300);
+    // 英文文案更长，截断上限按语言区分，避免把整句切在半截
+    const limit =
+      locale === "en"
+        ? { name: 80, tagline: 140, description: 600 }
+        : { name: 60, tagline: 60, description: 300 };
+
+    const name = String(parsed?.name ?? "").trim().slice(0, limit.name);
+    const tagline = String(parsed?.tagline ?? "").trim().slice(0, limit.tagline);
+    const description = String(parsed?.description ?? "")
+      .trim()
+      .slice(0, limit.description);
     const books = (Array.isArray(parsed?.books) ? parsed.books : [])
       .map((b: any) => ({
         title: String(b?.title ?? "").trim(),
@@ -116,9 +133,6 @@ export async function POST() {
       },
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

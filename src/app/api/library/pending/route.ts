@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 
 // 待补充清单：跨主题汇总书库里还没有的书（availability = pending_supplement）
 export async function GET() {
@@ -71,9 +72,6 @@ export async function GET() {
 
     return NextResponse.json({ pending: [...grouped.values()] });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

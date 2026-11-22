@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { generateDailyPack } from "@/lib/daily-pack";
+import { errorResponse } from "@/lib/api-response";
 
 function today() {
   const d = new Date();
@@ -30,10 +31,7 @@ export async function GET() {
     const result = await generateDailyPack(user.id, date, { confirm: true });
     return NextResponse.json({ pack: result.pack });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -47,10 +45,7 @@ export async function POST() {
     });
     return NextResponse.json(result);
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -71,9 +66,6 @@ export async function PATCH() {
     }
     return NextResponse.json({ pack: data });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

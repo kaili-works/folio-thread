@@ -8,6 +8,8 @@ import {
   TTS_VOICES,
   ttsProvider,
 } from "@/lib/tts";
+import { tApi } from "@/lib/api-messages";
+import { getRequestLocale } from "@/lib/request-locale";
 
 export const runtime = "nodejs";
 
@@ -24,9 +26,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const user = await requireUser();
+    const locale = await getRequestLocale();
     if (!rateLimit(`tts:${user.id}`, 20, 60_000)) {
       return NextResponse.json(
-        { error: "语音请求过于频繁，请稍后再试" },
+        { error: tApi(locale, "语音请求过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
@@ -40,18 +43,23 @@ export async function POST(request: Request) {
       : 1;
 
     if (!text) {
-      return NextResponse.json({ error: "缺少文本" }, { status: 400 });
+      return NextResponse.json({ error: tApi(locale, "缺少文本") }, { status: 400 });
     }
     if (text.length > MAX_CHARS) {
       return NextResponse.json(
-        { error: `单段文本过长（上限 ${MAX_CHARS} 字）` },
+        {
+          error:
+            locale === "en"
+              ? `Paragraph too long (max ${MAX_CHARS} characters)`
+              : `单段文本过长（上限 ${MAX_CHARS} 字）`,
+        },
         { status: 400 },
       );
     }
 
     const audio = await synthesizeSpeech(text, voice, rate);
     if (audio.length === 0) {
-      return NextResponse.json({ error: "语音合成结果为空" }, { status: 502 });
+      return NextResponse.json({ error: tApi(locale, "语音合成结果为空") }, { status: 502 });
     }
 
     return new NextResponse(new Uint8Array(audio), {

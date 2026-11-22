@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 
 // 完成本章：写 reading_progress，并按完成情况推进清单项状态。
 export async function POST(request: Request) {
@@ -68,9 +69,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, bookCompleted });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

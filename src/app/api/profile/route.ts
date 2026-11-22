@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 
 // 更新当前用户阅读速度（字/分钟）
 export async function PATCH(request: Request) {
@@ -27,9 +28,6 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ reading_speed: data.reading_speed });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

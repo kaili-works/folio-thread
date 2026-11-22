@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 
 const COLORS = ["yellow", "blue", "green"];
 
@@ -10,10 +11,7 @@ export async function GET(request: Request) {
   try {
     await requireUser();
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
   const { searchParams } = new URL(request.url);
   const documentId = searchParams.get("document_id");
@@ -79,9 +77,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ annotation: data });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

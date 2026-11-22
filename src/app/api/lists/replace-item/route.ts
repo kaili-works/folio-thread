@@ -4,6 +4,11 @@ import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
 import { findWeReadBook } from "@/lib/weread";
+import { getRequestLocale } from "@/lib/request-locale";
+import { outputLanguageRule, reasonRules } from "@/lib/ai-locale";
+import type { Locale } from "@/i18n";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
 
 const DEEPSEEK_URL = getDeepSeekUrl();
 const MODEL = "deepseek-flash";
@@ -19,11 +24,12 @@ async function recommendOne(params: {
   before: string[];
   after: string[];
   exclude: string[];
+  locale: Locale;
 }): Promise<Recommendation> {
   const apiKey = await getDeepSeekKey();
   if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
 
-  const { themeName, description, position, total, before, after, exclude } =
+  const { themeName, description, position, total, before, after, exclude, locale } =
     params;
 
   const system =
@@ -38,11 +44,8 @@ async function recommendOne(params: {
     "请推荐 1 本替代书：难度要与这个位置匹配，与前后书目自然衔接。",
     exclude.length ? `以下书目已在清单里，不要重复推荐：${exclude.join("、")}` : "",
     '输出格式：{"book":{"title":"书名","author":"作者","reason":"推荐理由"}}',
-    "reason 要求 60-90 字中文，按三部分来写：",
-    "1) 角色：这本书为什么适合放在这个位置、与前后项的关系；",
-    "2) 作者：一句话介绍作者身份、代表作或在该领域的权威性；",
-    "3) 地位：获奖、长期畅销、领域经典或标准教材等，只写有把握的事实，不确定就不写，禁止编造。",
-    "禁止「很重要」「值得一读」这类空话。",
+    ...reasonRules(locale),
+    outputLanguageRule(locale),
   ]
     .filter(Boolean)
     .join("\n");
@@ -88,13 +91,15 @@ export async function POST(request: Request) {
     const user = await requireUser();
     if (!rateLimit(`replace-item:${user.id}`, 10, 60_000)) {
       return NextResponse.json(
-        { error: "操作过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "操作过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
     const body = await request.json();
     const itemId = body?.item_id as string | undefined;
     if (!itemId) throw new ApiError(400, "缺少清单项");
+
+    const locale = await getRequestLocale();
 
     const { data: item } = await supabase
       .from("list_items")
@@ -152,6 +157,7 @@ export async function POST(request: Request) {
       before: titles.slice(Math.max(0, idx - 2), idx),
       after: titles.slice(idx + 1, idx + 3),
       exclude: titles,
+      locale,
     });
 
     // 书库里有就直接接上，没有就查微信读书，再没有就记为待补充
@@ -195,9 +201,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, title: rec.title });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

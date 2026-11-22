@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/server";
 import { ApiError, assertDocumentOwner, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 
 const BUCKET = "shared";
 
@@ -142,9 +143,6 @@ export async function GET(request: Request, { params }: Context) {
       chapter: chapterPayload,
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

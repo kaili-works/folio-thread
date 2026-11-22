@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { MARKET_TEMPLATES } from "@/lib/market";
+import { errorResponse } from "@/lib/api-response";
 
 // 列出书单市集模板
 export async function GET() {
@@ -9,10 +10,7 @@ export async function GET() {
     await requireUser();
     return NextResponse.json({ templates: MARKET_TEMPLATES });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -108,9 +106,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ theme, list });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

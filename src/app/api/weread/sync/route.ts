@@ -3,6 +3,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { getWeReadProgress, wereadTodayPct } from "@/lib/weread";
 import type { WeReadProgress } from "@/lib/weread";
+import { errorResponse } from "@/lib/api-response";
 
 const SYNC_INTERVAL_MS = 10 * 60 * 1000;
 
@@ -139,9 +140,6 @@ export async function POST(request: Request) {
       pack_updated: packUpdated,
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

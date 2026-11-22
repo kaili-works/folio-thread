@@ -2,12 +2,16 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { normalizeDomain } from "@/lib/domains";
+import { errorResponse } from "@/lib/api-response";
+import { getRequestLocale } from "@/lib/request-locale";
 
 // 统计：主题进度 / 书目数量 / 完成字数（只做这三项）。
 export async function GET() {
   const supabase = await createServerSupabase();
   try {
     const user = await requireUser();
+    const unknownTitle =
+      (await getRequestLocale()) === "en" ? "Unknown title" : "未知书名";
 
     // 并行读取相互独立的表，减少 Supabase 网络往返（单次约 0.6s）。
     // 只有 list_items 依赖 reading_lists，放到第二波。
@@ -89,8 +93,8 @@ export async function GET() {
       );
       const currentTitle = current
         ? current.document_id
-          ? (docById.get(current.document_id)?.title ?? "未知书名")
-          : (current.candidate_metadata?.title ?? "未知书名")
+          ? (docById.get(current.document_id)?.title ?? unknownTitle)
+          : (current.candidate_metadata?.title ?? unknownTitle)
         : null;
       return {
         id: t.id,
@@ -106,8 +110,8 @@ export async function GET() {
         items: its.map((it) => ({
           id: it.id,
           title: it.document_id
-            ? (docById.get(it.document_id)?.title ?? "未知书名")
-            : (it.candidate_metadata?.title ?? "未知书名"),
+            ? (docById.get(it.document_id)?.title ?? unknownTitle)
+            : (it.candidate_metadata?.title ?? unknownTitle),
           status: it.status,
           availability: it.availability,
           document_id: it.document_id,
@@ -222,9 +226,6 @@ export async function GET() {
       completed_items: completedItems,
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

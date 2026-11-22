@@ -4,6 +4,11 @@ import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
 import { findWeReadBook } from "@/lib/weread";
+import { getRequestLocale } from "@/lib/request-locale";
+import { outputLanguageRule, reasonRules } from "@/lib/ai-locale";
+import type { Locale } from "@/i18n";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
 
 const DEEPSEEK_URL = getDeepSeekUrl();
 const MODEL = "deepseek-flash";
@@ -23,6 +28,7 @@ async function callDeepSeek(
   description: string,
   hint: string,
   excludeTitles: string[],
+  locale: Locale,
 ): Promise<Recommendation[]> {
   const apiKey = await getDeepSeekKey();
   if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
@@ -41,11 +47,8 @@ async function callDeepSeek(
     "请推荐这个主题下适合循序阅读的书籍，5-6 本。",
     exclude,
     '输出格式：{"books":[{"title":"书名","author":"作者","reason":"推荐理由"}]}',
-    "reason 要求 60-90 字中文，按三部分来写：",
-    "1) 角色：这本书在阅读序列里的位置，为什么此时读、与前后项的关系；",
-    "2) 作者：一句话介绍作者身份、代表作或在该领域的权威性；",
-    "3) 地位：获奖、长期畅销、领域经典或标准教材等，只写有把握的事实，不确定就不写，禁止编造。",
-    "禁止「很重要」「值得一读」这类空话。",
+    ...reasonRules(locale),
+    outputLanguageRule(locale),
   ]
     .filter(Boolean)
     .join("\n");
@@ -103,7 +106,7 @@ export async function POST(request: Request) {
     const user = await requireUser();
     if (!rateLimit(`regenerate:${user.id}`, 6, 60_000)) {
       return NextResponse.json(
-        { error: "重新生成过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "重新生成过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
@@ -111,6 +114,8 @@ export async function POST(request: Request) {
     const themeId = body?.theme_id as string | undefined;
     const hint = (body?.hint as string | undefined)?.trim() ?? "";
     if (!themeId) throw new ApiError(400, "缺少主题");
+
+    const locale = await getRequestLocale();
 
     const { data: theme } = await supabase
       .from("themes")
@@ -158,7 +163,13 @@ export async function POST(request: Request) {
     let matched: { recommendation: Recommendation; book?: Book }[] = [];
     for (let attempt = 0; attempt < 2 && matched.length === 0; attempt++) {
       try {
-        const recs = await callDeepSeek(theme.name, theme.description ?? "", hint, excludeTitles);
+        const recs = await callDeepSeek(
+          theme.name,
+          theme.description ?? "",
+          hint,
+          excludeTitles,
+          locale,
+        );
         if (recs.length > 0) matched = matchBooks(recs, books);
       } catch {
         matched = [];
@@ -219,13 +230,15 @@ export async function POST(request: Request) {
       removed: toRegenerate,
       proposed,
       source: "ai",
-      message: toRegenerate.length === 0 ? "没有可重新生成的未开始项" : null,
+      message:
+        toRegenerate.length === 0
+          ? locale === "en"
+            ? "Nothing to regenerate — every item has already been started"
+            : "没有可重新生成的未开始项"
+          : null,
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -322,9 +335,6 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ ok: true, removed_ids: idsToRemove, inserted_ids: insertedIds });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

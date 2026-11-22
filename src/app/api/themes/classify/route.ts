@@ -3,7 +3,15 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
-import { DOMAINS, normalizeDomain, type Domain } from "@/lib/domains";
+import {
+  DOMAIN_KEYS,
+  DOMAIN_LABELS,
+  normalizeDomain,
+  type DomainKey,
+} from "@/lib/domains";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
+import { getRequestLocale } from "@/lib/request-locale";
 
 const DEEPSEEK_URL = getDeepSeekUrl();
 const MODEL = "deepseek-flash";
@@ -22,7 +30,7 @@ async function callDeepSeek(themes: Pending[]) {
 
   const system = [
     "你是图书管理员。把用户的阅读主题归入给定的领域标签。",
-    `领域标签只有这些：${DOMAINS.join("、")}。`,
+    `领域标签只有这些：${DOMAIN_KEYS.map((k) => DOMAIN_LABELS[k].zh).join("、")}。`,
     "必须从中选一个，不要发明新标签；拿不准时选「其他」。",
     "只输出 JSON，不要任何解释。",
   ].join("\n");
@@ -65,7 +73,7 @@ async function callDeepSeek(themes: Pending[]) {
       i: Number(r?.i),
       domain: normalizeDomain(r?.domain),
     }))
-    .filter((r): r is { i: number; domain: Domain } =>
+    .filter((r): r is { i: number; domain: DomainKey } =>
       Number.isFinite(r.i) && r.domain !== null,
     );
 }
@@ -76,7 +84,7 @@ export async function POST() {
     const user = await requireUser();
     if (!rateLimit(`classify:${user.id}`, 3, 60_000)) {
       return NextResponse.json(
-        { error: "分类请求过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "分类请求过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
@@ -164,9 +172,6 @@ export async function POST() {
 
     return NextResponse.json({ domain_ready: true, updated });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

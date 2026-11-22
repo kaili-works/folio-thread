@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { findWeReadBook } from "@/lib/weread";
+import { errorResponse } from "@/lib/api-response";
 
 // 给清单里「待补充」的书补查微信读书，命中后写入阅读链接
 export async function POST(request: Request) {
@@ -50,9 +51,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ checked: targets.length, updated });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

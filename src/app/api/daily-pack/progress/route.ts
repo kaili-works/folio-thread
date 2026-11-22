@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
+import { getRequestLocale } from "@/lib/request-locale";
 
 function today() {
   const d = new Date();
@@ -18,7 +21,7 @@ export async function POST(req: Request) {
     const body = await req.json().catch(() => ({}));
     const listItemId = String(body.list_item_id ?? "");
     if (!listItemId || body.minutes === undefined) {
-      return NextResponse.json({ error: "参数不完整" }, { status: 400 });
+      return NextResponse.json({ error: tApi(await getRequestLocale(), "参数不完整") }, { status: 400 });
     }
 
     const { data: pack, error: packError } = await supabase
@@ -31,13 +34,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: packError.message }, { status: 500 });
     }
     if (!pack) {
-      return NextResponse.json({ error: "今天还没有每日包" }, { status: 404 });
+      return NextResponse.json({ error: tApi(await getRequestLocale(), "今天还没有每日包") }, { status: 404 });
     }
 
     const items = (pack.items ?? []) as Record<string, any>[];
     const target = items.find((it) => it.list_item_id === listItemId);
     if (!target?.weread) {
-      return NextResponse.json({ error: "该条目不是微信读书书目" }, { status: 404 });
+      return NextResponse.json({ error: tApi(await getRequestLocale(), "该条目不是微信读书书目") }, { status: 404 });
     }
 
     const planned = Number(target.planned_minutes) || 30;
@@ -71,9 +74,6 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, minutes, today_pct: todayPct });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

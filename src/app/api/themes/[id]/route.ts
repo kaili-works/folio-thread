@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { normalizeDomain } from "@/lib/domains";
+import { errorResponse } from "@/lib/api-response";
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -58,10 +59,7 @@ export async function PATCH(req: Request, { params }: Context) {
 
     return NextResponse.json({ theme: data });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -78,9 +76,6 @@ export async function DELETE(_req: Request, { params }: Context) {
     if (error) throw new ApiError(500, `删除失败：${error.message}`);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

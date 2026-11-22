@@ -3,6 +3,11 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
+import { getRequestLocale } from "@/lib/request-locale";
+import { keyPointRules, outputLanguageRule } from "@/lib/ai-locale";
+import type { Locale } from "@/i18n";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
 
 const DEEPSEEK_URL = getDeepSeekUrl();
 const MODEL = "deepseek-flash";
@@ -22,7 +27,7 @@ type BookPayload = {
 };
 
 // 让 AI 为每本书提炼 3 个知识点标签；优先参考章节标题，没有章节时按书名的核心概念提炼。
-async function callDeepSeek(books: BookPayload[]) {
+async function callDeepSeek(books: BookPayload[], locale: Locale) {
   const apiKey = await getDeepSeekKey();
   if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
 
@@ -34,10 +39,8 @@ async function callDeepSeek(books: BookPayload[]) {
   const userPrompt = [
     "书单如下（chapters 是可参考的章节标题；为空时按这本书广为人知的核心概念提炼）：",
     JSON.stringify(books),
-    "要求：",
-    "1) 每本书 3 个标签，每个 2–8 个汉字，名词性概念，如「注意力残留」「可变奖励」；",
-    "2) 不要书名、作者名、章节序号，不要「很重要」这类空话；",
-    "3) 只写有把握的概念，不要编造人名、数据。",
+    ...keyPointRules(locale),
+    outputLanguageRule(locale),
     '输出格式：{"books":[{"i":1,"points":["…","…","…"]}]}',
   ].join("\n");
 
@@ -87,7 +90,7 @@ export async function POST(request: Request) {
     const user = await requireUser();
     if (!rateLimit(`keypoints:${user.id}`, 3, 60_000)) {
       return NextResponse.json(
-        { error: "提炼过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "提炼过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
@@ -172,7 +175,7 @@ export async function POST(request: Request) {
     }
     if (books.length === 0) return NextResponse.json({ updated: 0 });
 
-    const result = await callDeepSeek(books);
+    const result = await callDeepSeek(books, await getRequestLocale());
 
     let updated = 0;
     for (const row of result) {
@@ -192,9 +195,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ updated });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

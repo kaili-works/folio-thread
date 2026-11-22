@@ -5,6 +5,7 @@ import { ApiError, requireUser } from "@/lib/auth";
 import { parseEpub } from "@/lib/epub/parser";
 import { matchPendingSupplements } from "@/lib/matching";
 import { uploadBookMedia, removeBookFiles } from "@/lib/book-media";
+import { errorResponse } from "@/lib/api-response";
 
 const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 const PARSE_VERSION = 1;
@@ -24,10 +25,7 @@ export async function GET() {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ documents: data });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -190,9 +188,6 @@ export async function POST(request: Request) {
     if (docId) {
       await admin.from("documents").delete().eq("id", docId);
     }
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

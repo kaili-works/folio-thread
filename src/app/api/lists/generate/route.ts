@@ -4,6 +4,11 @@ import { ApiError, requireUser } from "@/lib/auth";
 import { rateLimit } from "@/lib/rate-limit";
 import { getDeepSeekKey, getDeepSeekUrl } from "@/lib/config";
 import { findWeReadBook } from "@/lib/weread";
+import { getRequestLocale } from "@/lib/request-locale";
+import { outputLanguageRule, reasonRules } from "@/lib/ai-locale";
+import type { Locale } from "@/i18n";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
 
 const DEEPSEEK_URL = getDeepSeekUrl();
 const MODEL = "deepseek-flash";
@@ -27,6 +32,7 @@ type Recommendation = {
 async function callDeepSeek(
   themeName: string,
   description: string,
+  locale: Locale,
 ): Promise<Recommendation[]> {
   const apiKey = await getDeepSeekKey();
   if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY");
@@ -42,11 +48,8 @@ async function callDeepSeek(
     description ? `主题描述/背景：${description}` : "",
     "请推荐这个主题下适合循序阅读的经典/入门书籍，5-6 本。",
     '输出格式：{"books":[{"title":"书名","author":"作者","reason":"推荐理由"}]}',
-    "reason 要求 60-90 字中文，按三部分来写：",
-    "1) 角色：这本书在阅读序列里的位置，为什么此时读、与前后项的关系；",
-    "2) 作者：一句话介绍作者身份、代表作或在该领域的权威性；",
-    "3) 地位：获奖、长期畅销、领域经典或标准教材等，只写有把握的事实，不确定就不写，禁止编造。",
-    "禁止「很重要」「值得一读」这类空话。",
+    ...reasonRules(locale),
+    outputLanguageRule(locale),
   ]
     .filter(Boolean)
     .join("\n");
@@ -104,13 +107,15 @@ export async function POST(request: Request) {
     const user = await requireUser();
     if (!rateLimit(`generate:${user.id}`, 3, 60_000)) {
       return NextResponse.json(
-        { error: "生成书单过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "生成书单过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
     const body = await request.json();
     const themeId = body?.theme_id as string | undefined;
     if (!themeId) throw new ApiError(400, "缺少主题");
+
+    const locale = await getRequestLocale();
 
     const { data: theme } = await supabase
       .from("themes")
@@ -129,7 +134,7 @@ export async function POST(request: Request) {
     let matched: { recommendation: Recommendation; book?: Book }[] = [];
     for (let attempt = 0; attempt < 2 && matched.length === 0; attempt++) {
       try {
-        const recs = await callDeepSeek(theme.name, theme.description ?? "");
+        const recs = await callDeepSeek(theme.name, theme.description ?? "", locale);
         if (recs.length > 0) matched = matchBooks(recs, books);
       } catch {
         matched = [];
@@ -223,21 +228,22 @@ export async function POST(request: Request) {
       };
     });
 
+    // 库内可读材料不足时明确提示，而不是堆满待补充项
+    const hint =
+      books.length < 3
+        ? locale === "en"
+          ? `Your library has only ${books.length} readable books, so the pending items below need an EPUB upload before you can read them`
+          : `你的书库只有 ${books.length} 本可读材料，清单中的待补充项需要你自行上传 EPUB 后才能阅读`
+        : null;
+
     return NextResponse.json({
       list,
       items,
       source: "ai",
-      // 库内可读材料不足时明确提示，而不是堆满待补充项
-      hint:
-        books.length < 3
-          ? `你的书库只有 ${books.length} 本可读材料，清单中的待补充项需要你自行上传 EPUB 后才能阅读`
-          : null,
+      hint,
       theme: { name: theme.name, description: theme.description },
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

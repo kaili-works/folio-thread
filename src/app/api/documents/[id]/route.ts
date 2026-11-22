@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createAdminSupabase, createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, assertDocumentOwner, requireUser } from "@/lib/auth";
 import { removeBookFiles } from "@/lib/book-media";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
+import { getRequestLocale } from "@/lib/request-locale";
 
 const BUCKET = "shared";
 
@@ -22,13 +25,10 @@ export async function GET(_req: Request, { params }: Context) {
       .maybeSingle();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    if (!doc) return NextResponse.json({ error: "书籍不存在" }, { status: 404 });
+    if (!doc) return NextResponse.json({ error: tApi(await getRequestLocale(), "书籍不存在") }, { status: 404 });
     return NextResponse.json({ document: doc });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -69,10 +69,7 @@ export async function PATCH(req: Request, { params }: Context) {
 
     return NextResponse.json({ document: data });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -120,9 +117,6 @@ export async function DELETE(_req: Request, { params }: Context) {
 
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

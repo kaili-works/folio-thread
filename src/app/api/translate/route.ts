@@ -8,8 +8,11 @@ import { rateLimit } from "@/lib/rate-limit";
 import {
   contentHash,
   translateText,
-  TRANSLATE_MODEL_VERSION,
+  translateVersion,
 } from "@/lib/translate";
+import { getRequestLocale } from "@/lib/request-locale";
+import { errorResponse } from "@/lib/api-response";
+import { tApi } from "@/lib/api-messages";
 
 const CONCURRENCY = 5;
 // 单次请求的段落上限：避免一个请求被放大成上千次上游调用
@@ -28,15 +31,18 @@ export async function POST(request: Request) {
     // 前端按 40 段分批，长章节会产生多次请求，故额度放宽到 20 次/分
     if (!rateLimit(`translate:${user.id}`, 20, 60_000)) {
       return NextResponse.json(
-        { error: "翻译请求过于频繁，请稍后再试" },
+        { error: tApi(await getRequestLocale(), "翻译请求过于频繁，请稍后再试") },
         { status: 429 },
       );
     }
 
     const body = await request.json();
     const rawIds: string[] = body?.paragraphIds ?? [];
+    // 译文语言跟随界面语言，同时决定用哪一份缓存
+    const locale = await getRequestLocale();
+    const modelVersion = translateVersion(locale);
     if (!Array.isArray(rawIds) || rawIds.length === 0) {
-      return NextResponse.json({ error: "缺少段落" }, { status: 400 });
+      return NextResponse.json({ error: tApi(await getRequestLocale(), "缺少段落") }, { status: 400 });
     }
     const paragraphIds = [
       ...new Set(rawIds.filter((id) => typeof id === "string" && id.length > 0)),
@@ -79,7 +85,7 @@ export async function POST(request: Request) {
       .from("translations")
       .select("paragraph_id, content_hash, text_translated")
       .in("paragraph_id", paragraphIds)
-      .eq("model_version", TRANSLATE_MODEL_VERSION)
+      .eq("model_version", modelVersion)
       .eq("status", "done");
 
     const cacheMap = new Map<string, string>();
@@ -125,7 +131,7 @@ export async function POST(request: Request) {
 
         for (let attempt = 0; attempt < 2 && translated == null; attempt++) {
           try {
-            translated = await translateText(p.text_original ?? "");
+            translated = await translateText(p.text_original ?? "", locale);
           } catch (err) {
             // 只对限流、5xx 与网络错误重试；4xx（如 key 失效）重试只是白花一次钱
             const status = Number(
@@ -145,7 +151,7 @@ export async function POST(request: Request) {
             {
               paragraph_id: p.id,
               content_hash: hash,
-              model_version: TRANSLATE_MODEL_VERSION,
+              model_version: modelVersion,
               text_translated: translated,
               status: "done",
             },
@@ -159,7 +165,7 @@ export async function POST(request: Request) {
             {
               paragraph_id: p.id,
               content_hash: hash,
-              model_version: TRANSLATE_MODEL_VERSION,
+              model_version: modelVersion,
               text_translated: null,
               status: "failed",
             },
@@ -187,9 +193,6 @@ export async function POST(request: Request) {
       failed: rows.filter((p) => failedIds.has(p.id)).map((p) => p.id),
     });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

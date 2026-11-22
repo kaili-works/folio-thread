@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createAdminSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
 import { removeBookFiles } from "@/lib/book-media";
+import { errorResponse } from "@/lib/api-response";
 
 const BUCKET = "shared";
 
@@ -48,9 +49,6 @@ export async function DELETE() {
     if (error) throw new ApiError(500, `删除账号失败：${error.message}`);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }

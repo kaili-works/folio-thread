@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { ApiError, requireUser } from "@/lib/auth";
+import { errorResponse } from "@/lib/api-response";
 
 const COLORS = ["yellow", "blue", "green"];
 
@@ -37,10 +38,7 @@ export async function PATCH(req: Request, { params }: Context) {
 
     return NextResponse.json({ annotation: data });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
 
@@ -57,9 +55,6 @@ export async function DELETE(_req: Request, { params }: Context) {
     if (error) throw new ApiError(500, `删除失败：${error.message}`);
     return NextResponse.json({ ok: true });
   } catch (e) {
-    if (e instanceof ApiError) {
-      return NextResponse.json({ error: e.message }, { status: e.status });
-    }
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 });
+    return errorResponse(e);
   }
 }
