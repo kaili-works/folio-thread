@@ -4,6 +4,16 @@ English · [简体中文](README.md)
 
 Turn a question into a reading plan: generate a themed book list, read a little every day, and keep notes in one place.
 
+## Demo
+
+<p align="center">
+  <img src="docs/media/today-reading.gif" width="360" alt="Generate today's reading" />
+  <img src="docs/media/themes-adjust.gif" width="360" alt="Adjust a list in one sentence" />
+  <img src="docs/media/reader-audio.gif" width="360" alt="Listen in the reader" />
+</p>
+
+Left to right: generating today's reading · adjusting a list in one sentence · listening in the reader (sample data).
+
 ## Quick start (about 5 minutes)
 
 ### 1. Create the database (Supabase)

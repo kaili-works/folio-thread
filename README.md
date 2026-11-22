@@ -6,6 +6,16 @@ Turn a question into a reading plan: generate a themed book list, read a little 
 
 把一句想研究的问题变成一个主题，自动拆成每日可读的清单，读完留下笔记与统计。
 
+## 演示
+
+<p align="center">
+  <img src="docs/media/today-reading.gif" width="360" alt="生成今日阅读包" />
+  <img src="docs/media/themes-adjust.gif" width="360" alt="一句话调整清单" />
+  <img src="docs/media/reader-audio.gif" width="360" alt="阅读器听书" />
+</p>
+
+从左到右：生成今日阅读包 · 一句话调整清单 · 阅读器听书（示例数据）。
+
 ## Quick start（约 5 分钟）
 
 ### 1. 建库（Supabase）
