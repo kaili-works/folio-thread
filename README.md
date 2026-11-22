@@ -1,60 +1,64 @@
 # FolioThread · 页脉研读
 
-[English](README.en.md) · 简体中文
+English · [简体中文](README.zh-CN.md)
 
-## 一个为跨领域学习者设计的 AI 阅读规划工具：
+### An AI reading planner for cross-disciplinary learners.
 
-它适合那些想在一个或多个陌生领域系统性探索但不知从何下手的阅读者，AI 会根据你的需求定制由浅入深的书单，并根据你的时间预算把书拆成每天读得完的份额。
+It is built for those who want to systematically explore one or multiple unfamiliar domains but don't know where to start. The AI curates a progressive reading list based on your goals and breaks it down into digestible daily portions that fit your time budget.
 
-> **这是一个自部署项目，没有官方托管版本。** 你需要准备自己的 Supabase 项目、语言大模型 key（如 DeepSeek）及微信读书 API Key（可选，没有也不影响使用），按下面的 Quick start 大约 5 分钟可以跑起来。
+> **This is a self-hosted project with no official hosted version.** You need your own Supabase project, an LLM API key (DeepSeek or any OpenAI-compatible provider), and optionally a WeRead API key (not required for the app to function). The Quick Start below gets you running in about five minutes.
 
-## 为什么做这个
+## Why this exists
 
-在AI时代，我们经常需要进行跨领域的快速学习。常见阅读工具已经在「推荐书目」「沉浸式阅读体验」「记录」「监督」「复盘」等方面做的很好，但也许我们还需要一个工具把各种零散的功能拼装起来，在一个应用中完成“规划向导-拆解任务-每日阅读”的完整链条。
+In the age of AI, we often need to learn across fields quickly. Existing reading tools already handle book recommendations, immersive reading, tracking, and review well. However, what is often missing is a cohesive tool that assembles these scattered pieces into a single workflow: plan as a guide → break work into tasks → read every day. 
 
 
-## 核心功能
+## Core features
 
-- **AI 阅读规划**：给出一个主题，AI 排出 5–6 本由浅入深、带推荐理由及主要知识点的书单；如果不满意，你可以用一句话整体重排，或单独替换某本书、调整阅读顺序等。
-- **私有书库**：你可以根据清单中的书目自行收集相应的 EPUB 格式电子书并上传书库。对于拥有微信读书账号的用户，若你愿意配置微信读书 API Key，系统也支持直接跳转微信读书（避免找书的麻烦，但实际上对于某些领域的专业书籍，微信读书也不一定有，还得自己去找书）。
-- **今日阅读包**：按每日阅读预算与阅读速度把清单中已上传的书籍切出今天该读的章节（其余隐藏），直到整个清单读完（支持多清单同步推进）。
-- **打卡式阅读器**：读完一章打个卡，系统就能够追踪你的进度并更新每日份额，阅读器还支持外文书籍AI 翻译、听书（可附加背景音乐）、笔记功能。不过若你排版效果有很高的要求，FolioThread可能会让你失望。
-- **领域复盘**：系统会对所有阅读清单进行领域归类与可视化，让你清晰看到自己正在或已经探索的知识版图。
+- **AI reading plan**: Give it a subject and AI returns 5–6 books, ordered from easier to harder, each with a recommendation and its key concepts. Adjust the whole list in one sentence, or just swap a single book or reorder the list.
+- **Private library**: Collect the EPUBs for the list yourself and upload them to your library. If you have a WeRead account and choose to configure a WeRead API key, it also provides direct links to WeRead. This saves some searching, but specialised books in some fields may not be on WeRead and still need to be found yourself.
+- **Today's reading**: Using your daily budget and reading speed, it slices the uploaded books into today's chapters (hiding the rest) until the whole list is finished; several lists can progress in parallel.
+- **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. However, if you have high standards for typography, FolioThread may disappoint you.
+- **Domain review**: Classifies and visualises all of your reading lists by domain, so you can see every field you are exploring or have explored.
 
-## 演示
-
-<p align="center">
-  <img src="docs/media/zh-create-theme.gif" width="360" alt="新建主题，AI 生成书单并切换列表 / 路径" />
-  <img src="docs/media/zh-adjust-list.gif" width="360" alt="清单微调：下移、换一本、搁置并确认" />
-  <img src="docs/media/zh-upload-library.gif" width="360" alt="上传 EPUB 到书库" />
-</p>
-<p align="center"><sub>1 · 新建主题，AI 生成书单，可切换列表 / 路径　　2 · 清单微调：下移、换一本、搁置后确认　　3 · 上传 EPUB 到书库</sub></p>
+## Demo
 
 <p align="center">
-  <img src="docs/media/zh-today-reading.gif" width="360" alt="生成今日阅读包" />
-  <img src="docs/media/zh-reader-finish.gif" width="360" alt="阅读器完成本章并进入下一章" />
-  <img src="docs/media/zh-stats-domain.gif" width="360" alt="统计页领域篮子与清单卡片" />
+  <img src="docs/media/en-create-theme.gif" width="360" alt="Create a theme, AI drafts the list, switch list / path views" />
+  <img src="docs/media/en-adjust-list.gif" width="360" alt="Fine-tune a list: reorder, swap, shelve and confirm" />
 </p>
-<p align="center"><sub>4 · 生成今日阅读包　　5 · 读完点「完成本章」，进入下一章　　6 · 统计页按领域复盘，点卡片展开清单</sub></p>
+<p align="center"><sub>1 · Create a theme, AI drafts the list; list / path views　　2 · Fine-tune: reorder, swap, shelve, confirm</sub></p>
 
-以「具身智能」为例，演示数据为本地 mock，不对应真实账号。
+<p align="center">
+  <img src="docs/media/en-upload-library.gif" width="360" alt="Upload an EPUB to the library" />
+  <img src="docs/media/en-today-reading.gif" width="360" alt="Generate today's reading" />
+</p>
+<p align="center"><sub>3 · Upload an EPUB　　4 · Generate today's reading</sub></p>
 
-## Quick start（约 5 分钟）
+<p align="center">
+  <img src="docs/media/en-reader-finish.gif" width="360" alt="Finish a chapter and move to the next" />
+  <img src="docs/media/en-stats-domain.gif" width="360" alt="Domain baskets and list cards in stats" />
+</p>
+<p align="center"><sub>5 · Finish a chapter, move on　　6 · Review by domain in stats</sub></p>
 
-### 1. 建库（Supabase）
+The theme used here is “Embodied AI”. Demo data is mocked locally and belongs to no real account.
 
-1. 新建一个 Supabase 项目。
-2. 打开 **SQL Editor**，整段执行 [`database/init.sql`](database/init.sql)（等价于按 `0001`→`0009` 顺序执行迁移）。
-3. 打开 **Storage**，新建一个 **私有** bucket，名字必须是 `shared`。
-4. 打开 **Authentication → Providers → Email**，关闭 **Confirm email**（否则注册后无法直接登录）。
+## Quick start (about 5 minutes)
 
-### 2. 配置环境变量
+### 1. Create the database (Supabase)
+
+1. Create a new Supabase project.
+2. Open **SQL Editor** and run [`database/init.sql`](database/init.sql) as one script (equivalent to running migrations `0001`→`0009` in order).
+3. Open **Storage** and create a **private** bucket named exactly `shared`.
+4. Open **Authentication → Providers → Email** and turn off **Confirm email** (otherwise new accounts cannot sign in right away).
+
+### 2. Configure environment variables
 
 ```bash
 cp .env.example .env.local
 ```
 
-至少填写这三项（Supabase Dashboard → Project Settings → API）：
+Fill in at least these three (Supabase Dashboard → Project Settings → API):
 
 ```ini
 NEXT_PUBLIC_SUPABASE_URL=
@@ -62,42 +66,42 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-其余变量都是可选的，缺失时应用会自动降级（见下文）。
+`NEXT_PUBLIC_SUPABASE_URL` must stop at the domain (`https://<ref>.supabase.co`); do not include `/rest/v1/`. All other variables are optional and degrade gracefully (see below).
 
-### 3. 启动
+### 3. Run
 
 ```bash
 npm ci
 npm run dev
 ```
 
-打开 <http://localhost:3000>，注册账号并创建第一个主题。
+Open <http://localhost:3000>, sign up, and create your first theme.
 
-### 4. 自检
+### 4. Self-check
 
 ```bash
-npm run doctor                      # 环境变量 + 13 张核心表
-curl "localhost:3000/api/health?db=1"   # 页面运行后再查一次
+npm run doctor                      # env vars + 13 core tables
+curl "localhost:3000/api/health?db=1"   # run again while the app is up
 ```
 
-`npm run doctor` 会明确告诉你缺哪个变量、缺哪张表；缺表时回到第 1 步执行 `init.sql`。
+`npm run doctor` tells you exactly which variable or table is missing. If tables are missing, rerun `init.sql`.
 
 ## Docker
 
-> 这是可选路径：CI 会构建镜像并检查 `/api/health`（推送到 GitHub 后生效）。作者的日常部署不使用容器，见下方「本机部署」。
+> Optional path: CI builds the image and checks `/api/health` (after the repo is on GitHub). The author's daily deployment does not use containers; see "Local deployment" below.
 
 ```bash
-cp .env.example .env    # 填写三个必填项
+cp .env.example .env    # fill in the three required values
 docker compose up --build
 ```
 
-说明：
+Notes:
 
-- `NEXT_PUBLIC_*` 在构建期内联进客户端代码，**改了这两个值必须重新 build**。
-- 容器健康检查调用 `/api/health`，环境变量缺失时会显示 unhealthy。
-- 构建阶段由 `scripts/sync-audio.mjs` 自动生成 `public/audio/`，无需手动准备音频。
+- `NEXT_PUBLIC_*` values are inlined at build time, so **changing them requires a rebuild**.
+- The container health check calls `/api/health`; it reports unhealthy when required variables are missing.
+- `scripts/sync-audio.mjs` generates `public/audio/` during the build, so no manual audio setup is needed.
 
-## 本机部署
+## Local deployment
 
 ```bash
 npm ci
@@ -105,21 +109,21 @@ npm run build
 npm start
 ```
 
-服务监听 `3000` 端口。远程访问走 Tailscale 域名，手机浏览器添加到主屏后以独立窗口运行。该路径不产出 `.next/standalone`，因此构建比容器方式更快（见 `next.config.mjs`）。
+The service listens on port `3000`. For remote access, use a Tailscale domain; on a phone, add the page to the home screen to run it in a standalone window. This path does not produce `.next/standalone`, so it builds faster than the Docker route (see `next.config.mjs`).
 
-## 可选集成（全部可缺省）
+## Optional integrations (all can be omitted)
 
-| 变量 | 缺失时的表现 |
+| Variable | Behaviour when missing |
 | --- | --- |
-| `AI_API_KEY`（或 `DEEPSEEK_API_KEY`） | 生成 / 重新生成清单直接返回 **503**，不用书库兜底；翻译与主题归类不可用；知识点静默失败 |
-| `WEREAD_API_KEY` | 隐藏「微信读书可读」入口与标签 |
-| `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | 未配置则跳过 Azure；语音依次尝试 Azure → 本机 edge-tts → 百度，云端全部失败才回退浏览器内置语音 |
-| `EDGE_TTS_PYTHON` | 手动指定 edge-tts 使用的 Python 路径；缺省自动探测 |
-| `EDGE_TTS_DISABLED=1` | 禁用本机 edge-tts，跳过该档，仍会尝试 Azure / 百度 |
+| `AI_API_KEY` (or `DEEPSEEK_API_KEY`) | Generating or regenerating a list returns **503** with no fallback; translation and theme classification stay unavailable; key-point extraction fails silently |
+| `WEREAD_API_KEY` | Hides the "readable on WeRead" link and badge |
+| `AZURE_SPEECH_KEY` / `AZURE_SPEECH_REGION` | Azure is skipped; speech tries Azure → local edge-tts → Baidu, then falls back to the browser voice |
+| `EDGE_TTS_PYTHON` | Pin the Python interpreter used by edge-tts; otherwise it is auto-detected |
+| `EDGE_TTS_DISABLED=1` | Disables local edge-tts, still trying Azure / Baidu |
 
-### 换用其它大模型
+### Using another LLM
 
-默认就是 DeepSeek，不填 `AI_*` 即可；也可以显式写：
+Text generation goes through the OpenAI-compatible `/chat/completions` API and defaults to DeepSeek. Leave `AI_*` empty to use it, or set it explicitly:
 
 ```ini
 AI_API_KEY=sk-...
@@ -127,7 +131,7 @@ AI_BASE_URL=https://api.deepseek.com/chat/completions
 AI_MODEL=deepseek-flash
 ```
 
-换成国内其它 OpenAI 兼容服务同样不用改代码。阿里云百炼（通义）：
+You can also switch to another OpenAI-compatible service without code changes. For example, Alibaba Cloud Model Studio (Qwen):
 
 ```ini
 AI_API_KEY=sk-...
@@ -135,7 +139,7 @@ AI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions
 AI_MODEL=qwen-plus
 ```
 
-智谱 GLM：
+Or Zhipu GLM:
 
 ```ini
 AI_API_KEY=...
@@ -143,56 +147,62 @@ AI_BASE_URL=https://open.bigmodel.cn/api/paas/v4/chat/completions
 AI_MODEL=glm-4-flash
 ```
 
-月之暗面 Kimi、硅基流动、火山方舟，以及本地 Ollama / vLLM 同理：填各自的兼容地址与模型名即可（地址和模型名以各控制台为准）。自定义地址时请同时填 `AI_MODEL`，否则会回落到 DeepSeek 的默认模型。旧变量 `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` 仍然兼容。
+Moonshot Kimi, SiliconFlow, Volcengine Ark, and local Ollama / vLLM work the same way: fill in their compatible URL and model name (check each provider's console). When using a custom URL, also set `AI_MODEL`; otherwise it falls back to the DeepSeek default model. The old `DEEPSEEK_API_KEY` / `DEEPSEEK_BASE_URL` variables still work.
 
-OpenAI 直连在部分网络环境不可用；Claude 原生协议不同，需要 OpenRouter / LiteLLM 等网关。两者都不是必需项。
+OpenAI direct access is unavailable on some networks; Claude's native API uses a different protocol and needs a gateway such as OpenRouter or LiteLLM. Neither is required.
 
-## 背景音乐（可选）
+## Background music (optional)
 
-仓库不附带第三方音乐。听书模式的背景音按以下顺序取用：
+The repository ships no third-party music. Audio mode picks background sound in this order:
 
-1. `background-music/rain-loop.mp3`、`background-music/piano-loop.mp3`（自行放入，已被 `.gitignore` 忽略）；
-2. 缺失时回落到 `assets/audio-fallback/` 下由 `scripts/make_audio.py` 生成的 CC0 合成音。
+1. `background-music/rain-loop.mp3` and `background-music/piano-loop.mp3` (bring your own; ignored by `.gitignore`);
+2. otherwise the CC0 synthetic loops in `assets/audio-fallback/`, generated by `scripts/make_audio.py`.
 
-使用自己的音乐时，按这两个文件名放入 `background-music/` 即可，`npm run dev` / `npm run build` 会自动同步到 `public/audio`。作者本地使用的 Pixabay 曲目与许可说明见 [NOTICE](NOTICE)。
+To use your own tracks, drop them into `background-music/` under those two file names; `npm run dev` / `npm run build` syncs them into `public/audio`. The Pixabay tracks and licence notes used by the author are in [NOTICE](NOTICE).
 
-### 默认听到什么
+### What you hear by default
 
-**全新克隆 / 自部署默认听到的是 `assets/audio-fallback/` 里的 CC0 合成 loop**（滤波噪声模拟雨声、程序合成音符模拟钢琴），不是下面这两首真人录音。原因见 [NOTICE](NOTICE) 2.1：Pixabay 许可不允许把原始音频原样再分发，所以它们不进仓库，只存在于作者本机。
+**A fresh clone or self-hosted deployment hears the CC0 synthetic loops in `assets/audio-fallback/`** (filtered noise for rain, synthesized notes for piano), not the two real recordings below. See [NOTICE](NOTICE) 2.1: the Pixabay licence does not allow redistributing the original audio, so they are not in the repository and exist only on the author's machine.
 
-### 作者使用的音源（可选，自行下载）
+### Tracks used by the author (optional, download yourself)
 
-想换成作者本地那两首，在 Pixabay 按 ID 搜索下载后按文件名放入 `background-music/`：
+To switch to the author's two tracks, search Pixabay by ID, download, and place them under the file names below:
 
-| 文件名 | 曲目 | 作者 | Pixabay ID |
+| File name | Track | Artist | Pixabay ID |
 | --- | --- | --- | --- |
-| `piano-loop.mp3` | Gymnopédie No. 1 | Erik Satie（演奏：abydos_music） | 176573 |
+| `piano-loop.mp3` | Gymnopédie No. 1 | Erik Satie (performed by abydos_music) | 176573 |
 | `rain-loop.mp3` | Sleep Well (Rainy Toasted White Noise Mix) | gingerleegalaxy | 229397 |
 
-不放也完全可用，只是听到合成 loop；换不换不影响功能。曲目许可以 Pixabay 内容许可为准。
+Everything works without them; you will just hear the synthetic loops. Licences follow the Pixabay Content Licence.
 
-## 自带书籍
+## Bring your own books
 
-仓库**不包含任何书籍正文或封面**。导入的 EPUB 只写入你自己的 Supabase 项目与 Storage。支持界面导入，也可用：
+The repository contains **no book text or covers**. Imported EPUBs are written only to your own Supabase project and Storage. You can import from the UI, or use:
 
 ```bash
 npm run import -- ./path/to/book.epub
 ```
 
-## 账户与删除
+## Account and deletion
 
-- 账户属于当前部署的 Supabase 项目，邮箱与密码由 Supabase Auth 管理。
-- 顶栏右侧头像菜单 → Account 可查看登录邮箱，并删除整个账户；删除会一并清除该账号的书籍与 EPUB 文件、笔记、主题与清单、阅读进度，且无法恢复。
-- 应用不提供管理员后台；部署者仍可在 Supabase 控制台手动删除用户。
+- Accounts belong to the Supabase project of the current deployment; email and password are managed by Supabase Auth.
+- The avatar menu in the top bar → Account shows the signed-in email and can delete the whole account. Deletion also removes that account's books and EPUB files, notes, themes and lists, and reading progress. It cannot be undone.
+- There is no admin console in the app; deployers can still delete users from the Supabase dashboard.
 
-## 已知限制
+## Known limitations
 
-- 限流为进程内实现，只对单实例有效；多实例部署需要外部存储。
-- 应用不提供数据库备份，备份与恢复由部署者负责。
-- AI 生成的书单、翻译与知识点可能有误，请自行判断。
+- Rate limiting is in-process and only effective for a single instance; multi-instance deployments need external storage.
+- The app does not back up the database; backup and restore are the deployer's responsibility.
+- AI-generated lists, translations, and key points may be wrong — use your own judgement.
+
+## How this was built
+
+This is a vibe-coding project. The human side covered the product direction, information architecture, visual design, copy, acceptance criteria and real-device testing; the implementation — most of the TypeScript/React code, styles, i18n dictionaries and Playwright mock harness — was written with AI assistants under that direction.
+
+Every change is checked with `tsc`, `next build` and the HTTP smoke suite before release. AI-assisted code can still hide bugs: if something looks off, please open an issue or a PR — review and corrections are especially welcome.
 
 ## License
 
-代码以 MIT 发布，见 [LICENSE](LICENSE)。第三方背景音乐不入库，来源与许可见 [NOTICE](NOTICE)；仓库内的兜底音频由 `scripts/make_audio.py` 合成，以 CC0 发布。
+Code is released under MIT; see [LICENSE](LICENSE). Third-party background music is not included; sources and licences are in [NOTICE](NOTICE). The fallback audio in the repository is synthesized by `scripts/make_audio.py` and released under CC0.
 
-版本记录见 [CHANGELOG.md](CHANGELOG.md)，安全问题报告方式见 [SECURITY.md](SECURITY.md)。
+Release history: [CHANGELOG.md](CHANGELOG.md). Security policy: [SECURITY.md](SECURITY.md).
