@@ -4260,7 +4260,7 @@ body:has(.auth-split) {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f6a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 20V9'/%3E%3Cpath d='M12 13c-4 0-6-2-6-5 3 0 5 1 6 4'/%3E%3Cpath d='M12 11c4 0 6-2 6-5-3 0-5 1-6 4'/%3E%3C/svg%3E")
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f6a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21.2V10.4'/%3E%3Cpath d='M12 14.4 10.6 13.2M12 11.6 13.4 10.4'/%3E%3Cpath d='M7.24 6.94 11.56 9.34 9.16 13.66 4.84 11.26Z'/%3E%3Cpath d='M6.72 9.48 9.68 11.12'/%3E%3Cpath d='M16.96 5.13 18.67 9.16 14.64 10.87 12.93 6.84Z'/%3E%3Cpath d='M15.19 6.57 16.41 9.43'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
 

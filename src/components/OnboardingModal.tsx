@@ -41,27 +41,43 @@ function Motif({ variant }: { variant: 1 | 2 | 3 }) {
             opacity={0.7}
           />
           <path d="M240 160 C 236 136 238 112 244 88" />
-          <path d="M240 136 C 224 134 212 124 206 110 C 221 108 234 117 240 130 Z" />
-          <path d="M240 136 C 231 127 219 117 206 110" stroke="#9aab8f" strokeWidth={1.3} />
-          <path d="M243 108 C 259 106 271 96 277 82 C 262 80 249 89 243 102 Z" />
-          <path d="M243 108 C 252 99 264 89 277 82" stroke="#9aab8f" strokeWidth={1.3} />
-          <path d="M245 88 C 238 79 236 67 241 57 C 249 64 251 77 245 88 Z" />
-          <path d="M245 88 C 242 78 242 67 241 57" stroke="#9aab8f" strokeWidth={1.3} />
+          <path d="M240 136 234 139M244 88 246 87M244 88 243 78" stroke="#cbd9c1" strokeWidth={2} />
+          {/* 叶：菱形纸片（与页脉标记同形） */}
+          <g transform="translate(222 124) rotate(-34)">
+            <path d="M0-20 20 0 0 20-20 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
+            <path d="M-7-7 7 7" stroke="#9aab8f" strokeWidth={1.3} />
+          </g>
+          <g transform="translate(263 95) rotate(26)">
+            <path d="M0-19 19 0 0 19-19 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
+            <path d="M-7-7 7 7" stroke="#9aab8f" strokeWidth={1.3} />
+          </g>
+          <g transform="translate(245 64) rotate(8)">
+            <path d="M0-13 13 0 0 13-13 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.3} />
+            <path d="M-5-5 5 5" stroke="#9aab8f" strokeWidth={1.2} />
+          </g>
         </>
       )}
 
       {variant === 2 && (
         <>
-          {/* 一条横枝，四片叶对应四步 */}
+          {/* 一条横枝，四片菱形纸对应四步 */}
           <path d="M56 148 C 124 144 176 128 226 108 C 280 86 340 66 424 60" />
-          <path d="M132 139 C 117 136 105 125 99 110 C 114 109 127 118 132 132 Z" />
-          <path d="M132 139 C 123 129 111 119 99 110" stroke="#9aab8f" strokeWidth={1.3} />
-          <path d="M196 118 C 211 115 223 104 229 89 C 214 88 201 97 196 111 Z" />
-          <path d="M196 118 C 205 108 217 98 229 89" stroke="#9aab8f" strokeWidth={1.3} />
-          <path d="M262 90 C 247 87 235 76 229 61 C 244 60 257 69 262 83 Z" />
-          <path d="M262 90 C 253 80 241 70 229 61" stroke="#9aab8f" strokeWidth={1.3} />
-          <path d="M330 72 C 345 69 357 58 363 43 C 348 42 335 51 330 65 Z" />
-          <path d="M330 72 C 339 62 351 52 363 43" stroke="#9aab8f" strokeWidth={1.3} />
+          <g transform="translate(112 126) rotate(-32)">
+            <path d="M0-17 17 0 0 17-17 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
+            <path d="M-6-6 6 6" stroke="#9aab8f" strokeWidth={1.2} />
+          </g>
+          <g transform="translate(212 104) rotate(26)">
+            <path d="M0-16 16 0 0 16-16 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
+            <path d="M-6-6 6 6" stroke="#9aab8f" strokeWidth={1.2} />
+          </g>
+          <g transform="translate(246 79) rotate(-28)">
+            <path d="M0-16 16 0 0 16-16 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
+            <path d="M-6-6 6 6" stroke="#9aab8f" strokeWidth={1.2} />
+          </g>
+          <g transform="translate(346 55) rotate(26)">
+            <path d="M0-15 15 0 0 15-15 0Z" fill="#f2efe2" stroke="#cbd9c1" strokeWidth={1.4} />
+            <path d="M-5-5 5 5" stroke="#9aab8f" strokeWidth={1.2} />
+          </g>
           <circle cx="424" cy="60" r="3" stroke="#9aab8f" strokeWidth={1.6} />
         </>
       )}
