@@ -390,6 +390,18 @@ button:disabled {
   font-weight: 400;
 }
 
+/* 已读完章节的勾：与「在读」徽标同排，窄侧栏下也保持单行 */
+.chapter-check {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+  color: #4f6a55;
+}
+
+.chapter-item.active .chapter-check {
+  color: rgba(255, 255, 255, 0.72);
+}
+
 .chapter-item.active .chapter-done {
   color: rgba(255, 255, 255, 0.6);
 }
@@ -827,7 +839,12 @@ button:disabled {
   height: 16px;
 }
 
-@media (max-width: 768px) {
+/* 手机（≤767）目录走抽屉；768 起平板用常驻侧栏 */
+@media (max-width: 767px) {
+  .reader {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .reader-sidebar {
     position: fixed;
     top: 0;
@@ -950,7 +967,7 @@ button:disabled {
   padding-bottom: 40px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .app-header-inner {
     padding: 10px 14px;
   }
@@ -2432,7 +2449,7 @@ details.plain ul {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .container {
     padding: 26px 18px 64px;
   }
@@ -2748,7 +2765,7 @@ details.plain ul {
   font-size: 28px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   /* 手机端：快捷入口整体靠右 */
   .app-header-inner {
     gap: 12px;
@@ -2894,7 +2911,7 @@ details.plain ul {
   accent-color: var(--reader-fg, #111827);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .tts-panel {
     bottom: 76px;
     padding: 14px 16px 16px;
@@ -3124,7 +3141,7 @@ details.plain ul {
   margin: 12px 0 0 32px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .view-bar {
     margin-top: 16px;
   }
@@ -3490,7 +3507,7 @@ select.domain-select:focus {
 }
 
 /* 手机：抽屉改为底部弹出 */
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .basket {
     max-width: 100%;
   }
@@ -4998,7 +5015,7 @@ body:has(.auth-split) {
   margin-bottom: 4px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .reader {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -5257,7 +5274,7 @@ body:has(.auth-split) {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .lib-upload {
     flex-wrap: wrap;
     align-items: flex-start;
@@ -5633,7 +5650,7 @@ body:has(.auth-split) {
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .app-header-inner {
     height: auto;
     padding: 10px 14px;
@@ -6023,7 +6040,7 @@ body:has(.auth-split) {
   color: var(--ft-muted);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 640px) {
   .today-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 26px;
@@ -7588,6 +7605,443 @@ body:has(.auth-split) {
   justify-content: flex-end;
   gap: 10px;
   margin-top: 14px;
+}
+
+/* ==========================================================
+   统计页 · 阅读时长（今日实际 vs 预算 + 30 天柱状）
+   ========================================================== */
+.rt-card {
+  margin-top: 34px;
+}
+
+.rt-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 12px;
+  flex-wrap: wrap;
+}
+
+.rt-head .hint {
+  font-size: 10.5px;
+  color: var(--ft-faint);
+}
+
+.rt-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.rt-value {
+  font-family: var(--font-serif);
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--ft-ink);
+}
+
+.rt-value small {
+  margin-left: 5px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ft-muted);
+}
+
+.rt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--ft-muted);
+}
+
+.rt-meta .rt-gap {
+  color: var(--ft-green);
+}
+
+.rt-meta .rt-over {
+  color: #b45309;
+}
+
+.rt-meta .rt-audio {
+  color: var(--ft-faint);
+}
+
+/* 今日实际 / 预算的细进度条：预算远超实际时也能看出比例 */
+.rt-goal {
+  width: 220px;
+  max-width: 100%;
+  height: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--ft-rule);
+}
+
+.rt-goal span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--ft-green);
+  transition: width 0.25s ease;
+}
+
+.rt-window {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ft-faint);
+  white-space: nowrap;
+}
+
+.rt-chart {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 92px;
+  margin-top: 16px;
+  padding-top: 10px;
+  border-bottom: 1px solid var(--ft-rule);
+}
+
+.rt-bar {
+  flex: 1;
+  min-width: 0;
+  border-radius: 2px 2px 0 0;
+  background: var(--ft-green-line);
+  transition: height 0.25s ease;
+}
+
+/* 数据很小时也保留可见的柱子，否则会被看成没有读数 */
+.rt-bar:not(.empty) {
+  min-height: 3px;
+}
+
+.rt-bar.today {
+  background: var(--ft-green);
+}
+
+.rt-bar.empty {
+  background: transparent;
+}
+
+.rt-budget-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed var(--ft-faint);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.rt-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 10px;
+  color: var(--ft-faint);
+}
+
+.rt-empty {
+  margin: 14px 0 0;
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: var(--ft-faint);
+}
+
+@media (max-width: 640px) {
+  .rt-value {
+    font-size: 27px;
+  }
+
+  .rt-chart {
+    height: 64px;
+    gap: 2px;
+  }
+
+  .rt-hero {
+    gap: 10px;
+  }
+}
+
+/* ==========================================================
+   统计页 · 清单完成率
+   ========================================================== */
+.cl-card {
+  margin-top: 30px;
+}
+
+.cl-rows {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.cl-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cl-name {
+  flex: 0 0 132px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--ft-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cl-bar {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--ft-rule);
+}
+
+.cl-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--ft-green);
+  transition: width 0.25s ease;
+}
+
+.cl-meta {
+  flex: 0 0 auto;
+  font-size: 10.5px;
+  color: var(--ft-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .cl-row {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+
+  .cl-name {
+    flex: 1 0 100%;
+  }
+}
+
+/* ==========================================================
+   统计页 · 空数据引导
+   ========================================================== */
+.empty-guide {
+  margin-top: 44px;
+  padding: 40px 28px;
+  border: 1px dashed var(--ft-rule);
+  border-radius: 14px;
+  background: var(--ft-paper);
+  text-align: center;
+}
+
+.empty-guide h2 {
+  margin: 10px 0 8px;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ft-ink);
+}
+
+.empty-guide p {
+  max-width: 430px;
+  margin: 0 auto;
+  font-size: 12.5px;
+  line-height: 2;
+  color: var(--ft-muted);
+}
+
+.empty-guide .empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.empty-guide .empty-primary,
+.empty-guide .empty-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.empty-guide .empty-primary {
+  border: 1px solid var(--ft-green);
+  background: var(--ft-green);
+  color: #fff;
+}
+
+.empty-guide .empty-primary:hover {
+  border-color: var(--ft-green-dark);
+  background: var(--ft-green-dark);
+}
+
+.empty-guide .empty-secondary {
+  border: 1px solid var(--ft-rule);
+  background: transparent;
+  color: var(--ft-ink);
+}
+
+.empty-guide .empty-secondary:hover {
+  border-color: var(--ft-rule-soft);
+  background: var(--ft-paper-2);
+}
+
+/* ==========================================================
+   平板（≥768）：顶部导航 + 阅读器常驻侧栏
+   手机断点已降到 640；768–1023 单独收窄侧栏与正文留白
+   ========================================================== */
+@media (min-width: 641px) and (max-width: 900px) {
+  .app-nav-desktop {
+    gap: 2px;
+  }
+
+  .app-nav-desktop a {
+    padding: 6px 7px;
+    font-size: 12.5px;
+    white-space: nowrap;
+  }
+
+  .app-logo {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 768px) {
+  /* 侧栏常驻后，底部「目录」按钮没有意义；选择器要压过 .btn-sm.icon-only */
+  .reader-toc-btn.btn-sm.icon-only {
+    display: none;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .reader {
+    grid-template-columns: 208px minmax(0, 1fr);
+  }
+
+  .reader-sidebar {
+    padding: 18px 14px;
+  }
+
+  .reader-content {
+    max-width: 620px;
+    padding: 32px 26px 72px;
+  }
+
+  .reader-toolbar {
+    padding: 0 20px;
+  }
+
+  .reader-chapter-title {
+    font-size: 26px;
+  }
+}
+
+/* 侧栏 ≤236px 时，「在读」徽标会把长书名挤成多行，靠深色底已经能识别当前章 */
+@media (min-width: 768px) and (max-width: 1279px) {
+  .chapter-done {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .reader {
+    grid-template-columns: 236px minmax(0, 1fr);
+  }
+
+  .reader-content {
+    max-width: 660px;
+    padding: 38px 34px 72px;
+  }
+}
+
+/* 平板竖屏（641–900）：今日阅读包占满整行，右侧偏好/快捷入口改为底部两栏 */
+@media (min-width: 641px) and (max-width: 900px) {
+  .today-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+
+  .today-aside {
+    display: flex;
+    gap: 32px;
+    padding: 22px 0 0;
+    border-top: 1px solid var(--ft-rule);
+    border-left: 0;
+  }
+
+  .today-aside .side-block {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .today-aside .side-block + .side-block {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+  }
+}
+
+/* 大屏：正文列在剩余空间内水平居中，左右留白对称 */
+@media (min-width: 1024px) {
+  .reader-content {
+    margin-inline: auto;
+  }
+}
+
+/* 平板：统计页领域篮子恢复双列 */
+@media (min-width: 768px) {
+  .baskets {
+    grid-template-columns: repeat(2, minmax(0, 340px));
+    gap: 40px 36px;
+  }
+}
+
+/* 平板：主题页保留左侧主题轨，不降级成「我的主题」选择条 */
+@media (min-width: 768px) and (max-width: 900px) {
+  .themes-page .themes {
+    grid-template-columns: 224px minmax(0, 1fr);
+    gap: 28px;
+    margin-top: 28px;
+  }
+
+  .themes-page .rail {
+    display: block;
+  }
+
+  .theme-select-bar,
+  .theme-picker {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .empty-guide {
+    margin-top: 28px;
+    padding: 30px 18px;
+  }
+
+  .empty-guide h2 {
+    font-size: 19px;
+  }
 }
 
 
