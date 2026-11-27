@@ -20,6 +20,7 @@ In the age of AI, we often need to learn across fields quickly. Existing reading
 - **Today's reading**: Using your daily budget and reading speed, it slices the uploaded books into today's chapters (hiding the rest) until the whole list is finished; several lists can progress in parallel.
 - **Check-in reader**: Mark a chapter done to track progress and update the daily portion. The reader also supports AI translation for foreign-language books, audio with optional background music, and notes. However, if you have high standards for typography, FolioThread may disappoint you.
 - **Domain review**: Classifies and visualises all of your reading lists by domain, so you can see every field you are exploring or have explored.
+- **Reading-time review**: The reader records foreground reading time in 30-second heartbeats; stats show today's actual time against your daily budget, a 30-day trend, and per-list chapter completion. Phone, tablet and desktop each get their own layout.
 
 ## Demo
 
@@ -48,7 +49,7 @@ The theme used here is “Embodied AI”. Demo data is mocked locally and belong
 ### 1. Create the database (Supabase)
 
 1. Create a new Supabase project.
-2. Open **SQL Editor** and run [`database/init.sql`](database/init.sql) as one script (equivalent to running migrations `0001`→`0009` in order).
+2. Open **SQL Editor** and run [`database/init.sql`](database/init.sql) as one script (equivalent to running migrations `0001`→`0010` in order).
 3. Open **Storage** and create a **private** bucket named exactly `shared`.
 4. Open **Authentication → Providers → Email** and turn off **Confirm email** (otherwise new accounts cannot sign in right away).
 
