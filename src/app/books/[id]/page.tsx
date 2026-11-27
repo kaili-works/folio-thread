@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n";
 import Guide from "@/components/Guide";
 import AudioReader from "@/components/AudioReader";
 import { Icon } from "@/components/Icon";
+import { useReadingTimer } from "@/lib/use-reading-timer";
 import {
   getCachedChapter,
   queueComplete,
@@ -100,6 +101,12 @@ export default function BookReader() {
   // 「设置」弹层与「听书」唤起信号
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [audioSignal, setAudioSignal] = useState(0);
+
+  // 阅读时长：只统计前台且有交互的时间；听书不并入这里
+  useReadingTimer({
+    documentId: id,
+    enabled: !!userId && !!doc && !!activeChapter,
+  });
 
   // 字号调节（正文，15~24px，localStorage 持久化）
   const FONT_MIN = 15;
@@ -637,6 +644,9 @@ export default function BookReader() {
                   {String(c.order_index).padStart(2, "0")}
                 </span>
                 <span>{c.title}</span>
+                {completedChapters.has(c.id) && (
+                  <Icon name="check" size={13} className="chapter-check" />
+                )}
                 {activeChapter?.id === c.id && (
                   <span className="chapter-done">{t.reader.readingNow}</span>
                 )}
@@ -969,7 +979,7 @@ export default function BookReader() {
                     <Icon name="next" />
                   </button>
                   <button
-                    className="btn-ghost btn-sm icon-only"
+                    className="reader-toc-btn btn-ghost btn-sm icon-only"
                     aria-label={t.reader.contents}
                     title={t.reader.contents}
                     onClick={() => {
