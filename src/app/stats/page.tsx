@@ -6,6 +6,7 @@ import Link from "next/link";
 import AppNav from "@/components/AppNav";
 import { useI18n, type Dict, type Locale } from "@/i18n";
 import { DOMAIN_KEYS, domainLabel, domainOrDefault } from "@/lib/domains";
+import { formatDuration } from "@/lib/format";
 
 type ThemeItem = {
   id: string;
@@ -44,6 +45,24 @@ type Stats = {
   books: { completed_books: number; completed_chapters: number };
   words: { original: number; translated_estimate: number };
   completed_items: CompletedItem[];
+  lists: ListStat[];
+};
+
+type ListStat = {
+  id: string;
+  theme: string;
+  total_chapters: number;
+  done_chapters: number;
+  percent: number | null;
+};
+
+type ReadingTime = {
+  today: {
+    read_seconds: number;
+    audio_seconds: number;
+    planned_minutes: number | null;
+  };
+  days: { date: string; seconds: number }[];
 };
 
 function itemState(it: ThemeItem, t: Dict) {
@@ -85,6 +104,8 @@ function themePct(t: ThemeStat) {
 export default function StatsPage() {
   const { locale, t } = useI18n();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [readingTime, setReadingTime] = useState<ReadingTime | null>(null);
+  const [rtError, setRtError] = useState(false);
   const [message, setMessage] = useState("");
   const [openThemeId, setOpenThemeId] = useState<string | null>(null);
   const [liftedId, setLiftedId] = useState<string | null>(null);
@@ -103,7 +124,24 @@ export default function StatsPage() {
 
   useEffect(() => {
     loadStats();
+    loadReadingTime();
   }, []);
+
+  // 时长聚合独立取：表未迁移或接口失败时不显示该模块，不影响其余统计
+  async function loadReadingTime() {
+    try {
+      const res = await fetch("/api/stats/reading-time?days=30");
+      if (!res.ok) {
+        setRtError(true);
+        return;
+      }
+      const json = await res.json();
+      if (json.error) setRtError(true);
+      else setReadingTime(json as ReadingTime);
+    } catch {
+      setRtError(true);
+    }
+  }
 
   // 归类改为显式点击：避免每次打开统计页都触发一次 AI 调用
   async function classifyThemes() {
@@ -166,6 +204,19 @@ export default function StatsPage() {
   const finishedThemes = stats
     ? stats.themes.filter((t) => t.total > 0 && t.completed >= t.total).length
     : 0;
+
+  // 阅读时长：今日实际 / 预算缺口 + 30 天柱状趋势
+  const rt = readingTime;
+  const rtMinutes = rt ? Math.round(rt.today.read_seconds / 60) : 0;
+  const rtPlanned = rt?.today.planned_minutes ?? null;
+  const rtGap = rtPlanned !== null ? rtPlanned - rtMinutes : 0;
+  const rtAudioMinutes = rt ? Math.round(rt.today.audio_seconds / 60) : 0;
+  // 图表按实际数据定标（下限 10 分钟）；预算远超实际时不再画进图里，
+  // 否则 1 分钟的柱子会被 70 分钟的预算压成一个点
+  const rtMax = Math.max(600, ...(rt?.days ?? []).map((d) => d.seconds));
+  const rtBudgetInChart =
+    rtPlanned !== null && rtPlanned > 0 && rtPlanned * 60 <= rtMax;
+  const rtHasData = (rt?.days ?? []).some((d) => d.seconds > 0);
   // 最近读完日期，用于右上角小字
   const lastDoneLabel = useMemo(() => {
     const times = (stats?.completed_items ?? [])
@@ -228,6 +279,20 @@ export default function StatsPage() {
 
         {!stats ? (
           <p className="muted">{t.stats.loading}</p>
+        ) : stats.themes.length === 0 ? (
+          <div className="empty-guide">
+            <span className="kicker">{t.stats.emptyKicker}</span>
+            <h2>{t.stats.emptyTitle}</h2>
+            <p>{t.stats.emptyDesc}</p>
+            <div className="empty-actions">
+              <Link href="/themes" className="empty-primary">
+                {t.stats.emptyCta}
+              </Link>
+              <Link href="/library" className="empty-secondary">
+                {t.stats.emptyCtaLibrary}
+              </Link>
+            </div>
+          </div>
         ) : (
           <>
             <section>
@@ -308,6 +373,143 @@ export default function StatsPage() {
                 )}
               </p>
             </section>
+
+            {rt ? (
+              <section className="rt-card">
+                <div className="rt-head">
+                  <span className="kicker">{t.stats.timeKicker}</span>
+                  <span className="hint">{t.stats.timeHint}</span>
+                </div>
+
+                <div className="rt-hero">
+                  <div>
+                    <div className="rt-value">
+                      {rtMinutes}
+                      <small>{t.stats.unitMinute}</small>
+                    </div>
+                    <div className="rt-meta">
+                      <span>{t.stats.timeToday}</span>
+                      {rtPlanned !== null ? (
+                        <>
+                          <span>{t.stats.timeBudget(rtPlanned)}</span>
+                          {rtGap >= 0 ? (
+                            <span className="rt-gap">
+                              {t.stats.timeGap(rtGap)}
+                            </span>
+                          ) : (
+                            <span className="rt-over">
+                              {t.stats.timeOver(-rtGap)}
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span>{t.stats.timeNoPack}</span>
+                      )}
+                      {rtAudioMinutes >= 1 && (
+                        <span className="rt-audio">
+                          {t.stats.timeAudio(rtAudioMinutes)}
+                        </span>
+                      )}
+                    </div>
+                    {rtPlanned !== null && rtPlanned > 0 && (
+                      <div className="rt-goal">
+                        <span
+                          style={{
+                            width: `${Math.min(
+                              100,
+                              (rtMinutes / rtPlanned) * 100,
+                            )}%`,
+                            minWidth: rtMinutes > 0 ? 4 : 0,
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <span className="rt-window">{t.stats.timeTrend}</span>
+                </div>
+
+                {rtHasData || rtMinutes > 0 ? (
+                  <>
+                    <div className="rt-chart">
+                      {rtPlanned !== null &&
+                        rtPlanned > 0 &&
+                        rtBudgetInChart && (
+                          <span
+                            className="rt-budget-line"
+                            style={{
+                              bottom: `${Math.min(
+                                100,
+                                ((rtPlanned * 60) / rtMax) * 100,
+                              )}%`,
+                            }}
+                            title={t.stats.timeBudget(rtPlanned)}
+                          />
+                        )}
+                      {rt.days.map((d, i) => (
+                        <span
+                          key={d.date}
+                          className={`rt-bar${
+                            d.seconds === 0 ? " empty" : ""
+                          }${i === rt.days.length - 1 ? " today" : ""}`}
+                          style={{
+                            height: `${(d.seconds / rtMax) * 100}%`,
+                          }}
+                          title={`${formatDay(d.date, locale)} · ${formatDuration(
+                            Math.round(d.seconds / 60),
+                            locale,
+                          )}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="rt-axis">
+                      <span>{formatDay(rt.days[0].date, locale)}</span>
+                      <span>
+                        {formatDay(rt.days[rt.days.length - 1].date, locale)}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <p className="rt-empty">{t.stats.timeNoData}</p>
+                )}
+              </section>
+            ) : rtError ? (
+              <section className="rt-card">
+                <p className="rt-empty">{t.stats.timeUnavailable}</p>
+              </section>
+            ) : null}
+
+            {stats.lists.length > 0 && (
+              <section className="cl-card">
+                <div className="rt-head">
+                  <span className="kicker">{t.stats.listKicker}</span>
+                  <span className="hint">{t.stats.listHint}</span>
+                </div>
+                <div className="cl-rows">
+                  {stats.lists.map((l) => (
+                    <div className="cl-row" key={l.id}>
+                      <span className="cl-name" title={l.theme}>
+                        {l.theme}
+                      </span>
+                      <span className="cl-bar">
+                        <span
+                          className="cl-fill"
+                          style={{ width: `${l.percent ?? 0}%` }}
+                        />
+                      </span>
+                      <span className="cl-meta">
+                        {l.percent === null
+                          ? "—"
+                          : t.stats.listMeta(
+                              l.done_chapters,
+                              l.total_chapters,
+                              l.percent,
+                            )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             <section className="stats-section">
               <div className="card-head">

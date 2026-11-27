@@ -32,7 +32,7 @@ export async function GET() {
         .order("created_at"),
       supabase
         .from("reading_lists")
-        .select("id, theme_id")
+        .select("id, theme_id, created_at")
         .eq("user_id", user.id),
       supabase.from("documents").select("id, title, language"),
       supabase
@@ -59,6 +59,19 @@ export async function GET() {
 
     const listByTheme = new Map<string, string>();
     for (const l of lists ?? []) listByTheme.set(l.id, l.theme_id);
+
+    // 同一主题可能因多次「生成清单」留下多条 reading_lists，只认最新一条，
+    // 否则统计页会把旧清单重复列出来、主题项数也会被放大
+    const currentListByTheme = new Map<string, any>();
+    for (const l of lists ?? []) {
+      const prev = currentListByTheme.get(l.theme_id);
+      if (!prev || String(l.created_at) > String(prev.created_at)) {
+        currentListByTheme.set(l.theme_id, l);
+      }
+    }
+    const currentListIds = new Set(
+      [...currentListByTheme.values()].map((l) => l.id),
+    );
     const docById = new Map((docs ?? []).map((d) => [d.id, d]));
 
     // 每本书的章节进度：抽屉里显示单本完成度
@@ -81,11 +94,40 @@ export async function GET() {
       return Math.round((c.done / c.total) * 100);
     };
 
+    // 清单完成率：每个主题只算「当前清单」（最新一条），按清单聚合章节
+    const listStats = (themes ?? [])
+      .map((theme) => {
+        const l = currentListByTheme.get(theme.id);
+        if (!l) return null;
+        let totalChapters = 0;
+        let doneChapters = 0;
+        for (const it of items ?? []) {
+          if (it.reading_list_id !== l.id || !it.document_id) continue;
+          const c = chapterByDoc.get(it.document_id);
+          if (!c) continue;
+          totalChapters += c.total;
+          doneChapters += c.done;
+        }
+        return {
+          id: l.id,
+          theme_id: theme.id,
+          theme: theme.name ?? unknownTheme,
+          total_chapters: totalChapters,
+          done_chapters: doneChapters,
+          percent:
+            totalChapters > 0
+              ? Math.round((doneChapters / totalChapters) * 100)
+              : null,
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
+
     // 1. 主题进度：完成项 / 可推进项（跳过与搁置不计入分母）+ 当前推进到哪一项
     const themeStats = (themes ?? []).map((t) => {
-      const its = (items ?? []).filter(
-        (it) => listByTheme.get(it.reading_list_id) === t.id,
-      );
+      const list = currentListByTheme.get(t.id);
+      const its = list
+        ? (items ?? []).filter((it) => it.reading_list_id === list.id)
+        : [];
       const tracked = its.filter(
         (it) => it.status !== "skipped" && it.status !== "shelved",
       );
@@ -179,7 +221,11 @@ export async function GET() {
     }
 
     const completedItems = (items ?? [])
-      .filter((it) => it.status === "completed")
+      .filter(
+        (it) =>
+          it.status === "completed" &&
+          currentListIds.has(it.reading_list_id),
+      )
       .map((it) => {
         const title = it.document_id
           ? (docById.get(it.document_id)?.title ?? unknownTitle)
@@ -226,6 +272,7 @@ export async function GET() {
         books: noteBooks,
       },
       completed_items: completedItems,
+      lists: listStats,
     });
   } catch (e) {
     return errorResponse(e);

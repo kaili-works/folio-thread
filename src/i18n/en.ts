@@ -423,6 +423,30 @@ export const en: Dict = {
     statePending: "Needs EPUB",
     stateNotStarted: "Not started",
     wereadProgress: (pct: number) => `WeRead ${pct}%`,
+    timeKicker: "Reading time",
+    timeHint: "Counts visible, active time only; audiobooks are excluded",
+    timeToday: "Today",
+    timeTrend: "Reading time · last 30 days",
+    timeBudget: (n: number) => `Budget ${n} min`,
+    timeGap: (n: number) => `${n} min to go`,
+    timeOver: (n: number) => `${n} min over`,
+    timeAudio: (n: number) => `Plus ${n} min of audio`,
+    timeNoPack: "No reading pack today, so there is no budget to compare",
+    timeNoData:
+      "No reading time recorded yet — open any book and read for a while.",
+    timeUnavailable:
+      "Reading time is unavailable: make sure database/0010_reading_daily.sql has been run on this Supabase project.",
+    unitMinute: "min",
+    listKicker: "List completion",
+    listHint: "Finished chapters over total chapters, per list",
+    listMeta: (done: number, total: number, pct: number) =>
+      `${done}/${total} chapters · ${pct}%`,
+    emptyKicker: "Get started",
+    emptyTitle: "Nothing to show yet",
+    emptyDesc:
+      "Create a theme and let AI draft a reading list. Once your EPUBs are in the library, finished chapters, words and reading time show up here.",
+    emptyCta: "Create a theme",
+    emptyCtaLibrary: "Import books",
   },
   notes: {
     kicker: "Notes",

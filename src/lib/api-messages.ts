@@ -27,6 +27,7 @@ const EN: Record<string, string> = {
   "文件超过 50MB 上限": "File exceeds the 50 MB limit",
   "阅读速度需在 100~1000 字/分钟之间":
     "Reading speed must be between 100 and 1000 characters per minute",
+  "上报时长超出上限": "Reported duration exceeds the limit",
 
   // 资源不存在
   "书籍不存在": "Book not found",
@@ -107,6 +108,8 @@ const EN: Record<string, string> = {
   "写入章节失败：": "Failed to save chapters: ",
   "写入段落失败：": "Failed to save paragraphs: ",
   "写入进度失败：": "Failed to save progress: ",
+  "写入阅读时长失败：": "Failed to save reading time: ",
+  "读取阅读时长失败：": "Failed to load reading time: ",
   "文件存储失败：": "Failed to store file: ",
   "未知错误": "unknown error",
 };

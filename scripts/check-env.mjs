@@ -43,6 +43,7 @@ const TABLES = [
   "book_note_status",
   "daily_packs",
   "reading_stats",
+  "reading_daily",
 ];
 
 const missing = REQUIRED.filter(([key]) => !process.env[key]?.trim());
